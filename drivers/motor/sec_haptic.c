@@ -346,7 +346,7 @@ static ssize_t intensity_show(struct device *dev,
 	struct sec_haptic_drvdata *ddata = dev_get_drvdata(dev);
 
 	return snprintf(buf, VIB_BUFSIZE,
-		"intensity: %u\n", ddata->intensity);
+		"%u\n", ddata->intensity);
 }
 
 
