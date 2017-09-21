@@ -2037,22 +2037,13 @@ ssize_t sec_bat_store_attrs(
 		break;
 	case STORE_MODE:
 		if (sscanf(buf, "%10d\n", &x) == 1) {
-#if !defined(CONFIG_SEC_FACTORY)
-			if (x) {
-				battery->store_mode = true;
-				wake_lock(&battery->parse_mode_dt_wake_lock);
-				queue_delayed_work(battery->monitor_wqueue,
-					&battery->parse_mode_dt_work, 0);
-
-#if defined(CONFIG_DIRECT_CHARGING)
-				direct_charging_source_status[0] = SEC_STORE_MODE;
-				direct_charging_source_status[1] = SEC_DIRECT_CHG_CHARGING_SOURCE_SWITCHING;
-				value.strval = direct_charging_source_status;
+			battery->store_mode = x ? true : false;
+			if (battery->store_mode) {
+				union power_supply_propval value;
+				value.intval = battery->store_mode;
 				psy_do_property(battery->pdata->charger_name, set,
-					POWER_SUPPLY_EXT_PROP_CHANGE_CHARGING_SOURCE, value);
-#endif
+						POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX, value);
 			}
-#endif
 			ret = count;
 		}
 		break;
