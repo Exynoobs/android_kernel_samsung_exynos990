@@ -132,16 +132,6 @@ enum misc_battery_health {
 	BATTERY_HEALTH_BAD = 0xF,
 };
 
-#if defined(CONFIG_SEC_FACTORY)             // SEC_FACTORY
-#define STORE_MODE_CHARGING_MAX 80
-#define STORE_MODE_CHARGING_MIN 25
-#else                                       // !SEC_FACTORY, STORE MODE
-#define STORE_MODE_CHARGING_MAX 70
-#define STORE_MODE_CHARGING_MIN 60
-#define STORE_MODE_CHARGING_MAX_VZW 35
-#define STORE_MODE_CHARGING_MIN_VZW 30
-#endif //(CONFIG_SEC_FACTORY)
-
 #define ADC_CH_COUNT		10
 #define ADC_SAMPLE_COUNT	10
 

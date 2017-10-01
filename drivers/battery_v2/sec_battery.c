@@ -26,6 +26,14 @@
 #define __visible_for_testing static
 #endif
 
+static unsigned int STORE_MODE_CHARGING_MAX = 80;
+static unsigned int STORE_MODE_CHARGING_MIN = 25;
+
+module_param_named(store_mode_max, STORE_MODE_CHARGING_MAX, uint, S_IWUSR | S_IRUGO);
+module_param_named(store_mode_min, STORE_MODE_CHARGING_MIN, uint, S_IWUSR | S_IRUGO);
+
+const char *charger_chip_name;
+
 bool sleep_mode = false;
 bool batt_boot_complete = false;
 
