@@ -342,6 +342,18 @@ config SOC_EXYNOS9830
 	select PINCTRL
 	select SAMSUNG_DMADEV
 
+config MODEL_Y2S
+	bool "Samsung Galaxy S20  Plus"
+	depends on SOC_EXYNOS9830
+
+config MODEL_X1S
+	bool "Samsung Galaxy S20"
+	depends on SOC_EXYNOS9830
+
+config MODEL_Z3S
+        bool "Samsung S20 Ultra"
+        depends on SOC_EXYNOS9830
+
 config SOC_EXYNOS9830_EVT0
 	default n
 	bool "Samsung EXYNOS9830 EVT0"
