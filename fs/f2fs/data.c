@@ -661,11 +661,6 @@ next:
 
 	if (!f2fs_mergeable_bio(io->bio, dun, fscrypt_get_diskcipher(inode), bio_encrypted, bi_crypt_skip))
 		__submit_merged_bio(io);
-#ifdef CONFIG_DDAR
-	/* DDAR support */
-	if (!fscrypt_dd_can_merge_bio(io->bio, fio->page->mapping))
-		__submit_merged_bio(io);
-#endif
 
 alloc_new:
 	if (io->bio == NULL) {
@@ -1786,12 +1781,6 @@ submit_and_realloc:
 			bio = NULL;
 		}
 
-// CONFIG_DDAR [
-		if (!fscrypt_dd_can_merge_bio(bio, mapping)) {
-			__submit_bio(F2FS_I_SB(inode), bio, DATA);
-			bio = NULL;
-		}
-// ] CONFIG_DDAR
 		if (bio == NULL) {
 			bio = f2fs_grab_read_bio(inode, block_nr, nr_pages,
 					is_readahead ? REQ_RAHEAD : 0);
