@@ -27,14 +27,7 @@ static DEFINE_MUTEX(f2fs_stat_mutex);
 static void update_general_status(struct f2fs_sb_info *sbi)
 {
 	struct f2fs_stat_info *si = F2FS_STAT(sbi);
-	struct f2fs_super_block *raw_super = F2FS_RAW_SUPER(sbi);
 	int i;
-
-	/* these will be changed if online resize is done */
-	si->main_area_segs = le32_to_cpu(raw_super->segment_count_main);
-	si->main_area_sections = le32_to_cpu(raw_super->section_count);
-	si->main_area_zones = si->main_area_sections /
-				le32_to_cpu(raw_super->secs_per_zone);
 
 	/* validation check of the segment numbers */
 	si->hit_largest = atomic64_read(&sbi->read_hit_largest);
@@ -56,7 +49,7 @@ static void update_general_status(struct f2fs_sb_info *sbi)
 	si->nquota_files = sbi->nquota_files;
 	si->ndirty_all = sbi->ndirty_inode[DIRTY_META];
 	si->inmem_pages = get_pages(sbi, F2FS_INMEM_PAGES);
-	si->aw_cnt = atomic_read(&sbi->aw_cnt);
+	si->aw_cnt = sbi->atomic_files;
 	si->vw_cnt = atomic_read(&sbi->vw_cnt);
 	si->max_aw_cnt = atomic_read(&sbi->max_aw_cnt);
 	si->max_vw_cnt = atomic_read(&sbi->max_vw_cnt);
@@ -67,7 +60,7 @@ static void update_general_status(struct f2fs_sb_info *sbi)
 	si->nr_rd_data = get_pages(sbi, F2FS_RD_DATA);
 	si->nr_rd_node = get_pages(sbi, F2FS_RD_NODE);
 	si->nr_rd_meta = get_pages(sbi, F2FS_RD_META);
-	if (SM_I(sbi)->fcc_info) {
+	if (SM_I(sbi) && SM_I(sbi)->fcc_info) {
 		si->nr_flushed =
 			atomic_read(&SM_I(sbi)->fcc_info->issued_flush);
 		si->nr_flushing =
@@ -75,7 +68,7 @@ static void update_general_status(struct f2fs_sb_info *sbi)
 		si->flush_list_empty =
 			llist_empty(&SM_I(sbi)->fcc_info->issue_list);
 	}
-	if (SM_I(sbi)->dcc_info) {
+	if (SM_I(sbi) && SM_I(sbi)->dcc_info) {
 		si->nr_discarded =
 			atomic_read(&SM_I(sbi)->dcc_info->issued_discard);
 		si->nr_discarding =
@@ -495,7 +488,6 @@ int f2fs_build_stats(struct f2fs_sb_info *sbi)
 	for (i = META_CP; i < META_MAX; i++)
 		atomic_set(&sbi->meta_count[i], 0);
 
-	atomic_set(&sbi->aw_cnt, 0);
 	atomic_set(&sbi->vw_cnt, 0);
 	atomic_set(&sbi->max_aw_cnt, 0);
 	atomic_set(&sbi->max_vw_cnt, 0);
@@ -505,6 +497,13 @@ int f2fs_build_stats(struct f2fs_sb_info *sbi)
 	mutex_unlock(&f2fs_stat_mutex);
 
 	return 0;
+}
+
+void f2fs_update_sec_stats(struct f2fs_sb_info *sbi)
+{
+	update_general_status(sbi);
+	update_sit_info(sbi);
+	update_mem_info(sbi);
 }
 
 void f2fs_destroy_stats(struct f2fs_sb_info *sbi)

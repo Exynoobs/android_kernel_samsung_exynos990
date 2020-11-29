@@ -19,7 +19,6 @@
  */
 
 #include "sdcardfs.h"
-#include <linux/fscrypt.h>
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/parser.h>
@@ -77,6 +76,7 @@ static int parse_options(struct super_block *sb, char *options, int silent,
 	opts->gid_derivation = false;
 	opts->default_normal = false;
 	opts->nocache = false;
+	opts->unshared_obb = false;
 
 	*debug = 0;
 
@@ -193,6 +193,7 @@ int parse_options_remount(struct super_block *sb, char *options, int silent,
 				return 0;
 			vfsopts->mask = option;
 			break;
+		case Opt_nocache:
 		case Opt_unshared_obb:
 		case Opt_default_normal:
 		case Opt_multiuser:
@@ -279,7 +280,6 @@ static int sdcardfs_read_super(struct vfsmount *mnt, struct super_block *sb,
 
 	pr_info("sdcardfs: dev_name -> %s\n", dev_name);
 	pr_info("sdcardfs: options -> %s\n", (char *)raw_data);
-	pr_info("sdcardfs: mnt -> %p\n", mnt);
 
 	/* parse lower path */
 	err = kern_path(dev_name, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
@@ -375,9 +375,6 @@ static int sdcardfs_read_super(struct vfsmount *mnt, struct super_block *sb,
 	list_add(&sb_info->list, &sdcardfs_super_list);
 	mutex_unlock(&sdcardfs_super_list_lock);
 
-	sb_info->fscrypt_nb.notifier_call = sdcardfs_on_fscrypt_key_removed;
-	fscrypt_register_key_removal_notifier(&sb_info->fscrypt_nb);
-
 	if (!silent)
 		pr_info("sdcardfs: mounted on top of %s type %s\n",
 				dev_name, lower_sb->s_type->name);
@@ -448,9 +445,6 @@ void sdcardfs_kill_sb(struct super_block *sb)
 
 	if (sb->s_magic == SDCARDFS_SUPER_MAGIC && sb->s_fs_info) {
 		sbi = SDCARDFS_SB(sb);
-
-		fscrypt_unregister_key_removal_notifier(&sbi->fscrypt_nb);
-
 		mutex_lock(&sdcardfs_super_list_lock);
 		list_del(&sbi->list);
 		mutex_unlock(&sdcardfs_super_list_lock);

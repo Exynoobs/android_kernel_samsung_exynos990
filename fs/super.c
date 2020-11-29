@@ -32,10 +32,10 @@
 #include <linux/backing-dev.h>
 #include <linux/rculist_bl.h>
 #include <linux/cleancache.h>
-#include <linux/fscrypt.h>
 #include <linux/fsnotify.h>
 #include <linux/lockdep.h>
 #include <linux/user_namespace.h>
+#include <linux/magic.h>
 #include "internal.h"
 
 static int thaw_super_locked(struct super_block *sb);
@@ -289,7 +289,6 @@ static void __put_super(struct super_block *s)
 		WARN_ON(s->s_inode_lru.node);
 		WARN_ON(!list_empty(&s->s_mounts));
 		security_sb_free(s);
-		fscrypt_sb_free(s);
 		put_user_ns(s->s_user_ns);
 		kfree(s->s_subtype);
 		call_rcu(&s->rcu, destroy_super_rcu);
@@ -880,6 +879,9 @@ int do_remount_sb2(struct vfsmount *mnt, struct super_block *sb, int sb_flags, v
 		if (force) {
 			sb->s_readonly_remount = 1;
 			smp_wmb();
+
+			if (sb->s_magic == F2FS_SUPER_MAGIC)
+				mnt = ERR_PTR(-EROFS);
 		} else {
 			retval = sb_prepare_remount_readonly(sb);
 			if (retval)
@@ -906,7 +908,14 @@ int do_remount_sb2(struct vfsmount *mnt, struct super_block *sb, int sb_flags, v
 			     sb->s_type->name, retval);
 		}
 	}
+
+#ifdef CONFIG_FIVE
+	sb->s_flags = (sb->s_flags & ~MS_RMT_MASK) |
+				(sb_flags & MS_RMT_MASK) | MS_I_VERSION;
+#else
 	sb->s_flags = (sb->s_flags & ~MS_RMT_MASK) | (sb_flags & MS_RMT_MASK);
+#endif
+
 	/* Needs to be ordered wrt mnt_is_readonly() */
 	smp_wmb();
 	sb->s_readonly_remount = 0;

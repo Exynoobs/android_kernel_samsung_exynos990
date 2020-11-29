@@ -325,6 +325,10 @@ ARCH		?= $(SUBARCH)
 UTS_MACHINE 	:= $(ARCH)
 SRCARCH 	:= $(ARCH)
 
+CROSS_COMPILE := ./toolchain/gcc-cfp/gcc-cfp-jopp-only/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+CC := ./toolchain/clang/host/linux-x86/clang-r349610-jopp/bin/clang
+CLANG_TRIPLE := ./toolchain/clang/host/linux-x86/clang-r349610-jopp/bin/aarch64-linux-gnu-
+
 # Additional ARCH settings for x86
 ifeq ($(ARCH),i386)
         SRCARCH := x86
@@ -370,7 +374,7 @@ KBUILD_HOSTLDLIBS   := $(HOST_LFS_LIBS) $(HOSTLDLIBS)
 # Make variables (CC, etc...)
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
-CC		= $(CROSS_COMPILE)gcc
+#CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -388,6 +392,11 @@ PYTHON		= python
 PYTHON2		= python2
 PYTHON3		= python3
 CHECK		= sparse
+
+ifeq ($(CONFIG_EXYNOS_FMP_FIPS),)
+READELF        = $(CROSS_COMPILE)readelf
+export READELF
+endif
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void -Wno-unknown-attribute $(CF)
@@ -421,6 +430,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
+		   -Werror \
 		   -std=gnu89
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
@@ -495,6 +505,7 @@ endif
 ifneq ($(GCC_TOOLCHAIN),)
 CLANG_FLAGS	+= --gcc-toolchain=$(GCC_TOOLCHAIN)
 endif
+# KBUILD_CFLAGS += -Wno-sizeof-pointer-div
 CLANG_FLAGS	+= -no-integrated-as
 CLANG_FLAGS	+= -Werror=unknown-warning-option
 KBUILD_CFLAGS	+= $(CLANG_FLAGS)
@@ -747,11 +758,6 @@ KBUILD_CFLAGS	+= -fomit-frame-pointer
 endif
 endif
 
-# Initialize all stack variables with a pattern, if desired.
-ifdef CONFIG_INIT_STACK_ALL
-KBUILD_CFLAGS  += -ftrivial-auto-var-init=pattern
-endif
-
 KBUILD_CFLAGS   += $(call cc-option, -fno-var-tracking-assignments)
 
 ifdef CONFIG_DEBUG_INFO
@@ -764,6 +770,12 @@ KBUILD_AFLAGS	+= -Wa,-gdwarf-2
 endif
 ifdef CONFIG_DEBUG_INFO_DWARF4
 KBUILD_CFLAGS	+= $(call cc-option, -gdwarf-4,)
+endif
+
+ifdef CONFIG_RKP_CFP_JOPP
+# Don't use jump tables for switch statements, since this generates indirect jump (br)
+# instructions, which are very dangerous for kernel control flow integrity.
+KBUILD_CFLAGS	+= -fno-jump-tables
 endif
 
 ifdef CONFIG_DEBUG_INFO_REDUCED
@@ -813,16 +825,10 @@ LDFLAGS_vmlinux += --gc-sections
 endif
 
 ifdef CONFIG_LTO_CLANG
-ifdef CONFIG_THINLTO
-lto-clang-flags	:= -flto=thin
-KBUILD_LDFLAGS	+= --thinlto-cache-dir=.thinlto-cache
-else
-lto-clang-flags	:= -flto
-endif
-lto-clang-flags += -fvisibility=default $(call cc-option, -fsplit-lto-unit)
+lto-clang-flags	:= -flto -fvisibility=hidden
 
 # allow disabling only clang LTO where needed
-DISABLE_LTO_CLANG := -fno-lto
+DISABLE_LTO_CLANG := -fno-lto -fvisibility=default
 export DISABLE_LTO_CLANG
 endif
 
@@ -835,7 +841,7 @@ export LTO_CFLAGS DISABLE_LTO
 endif
 
 ifdef CONFIG_CFI_CLANG
-cfi-clang-flags	+= -fsanitize=cfi -fno-sanitize-cfi-canonical-jump-tables
+cfi-clang-flags	+= -fsanitize=cfi $(call cc-option, -fsplit-lto-unit)
 DISABLE_CFI_CLANG := -fno-sanitize=cfi
 ifdef CONFIG_MODULES
 cfi-clang-flags	+= -fsanitize-cfi-cross-dso
@@ -858,12 +864,6 @@ KBUILD_CFLAGS	+= $(CFI_CFLAGS)
 DISABLE_CFI	:= $(DISABLE_CFI_CLANG)
 DISABLE_LTO	+= $(DISABLE_CFI)
 export CFI_CFLAGS DISABLE_CFI
-endif
-
-ifdef CONFIG_SHADOW_CALL_STACK
-CC_FLAGS_SCS	:= -fsanitize=shadow-call-stack
-KBUILD_CFLAGS	+= $(CC_FLAGS_SCS)
-export CC_FLAGS_SCS
 endif
 
 # arch Makefile may override CC so keep this after arch Makefile is included
@@ -942,8 +942,21 @@ ifeq ($(CONFIG_STRIP_ASM_SYMS),y)
 LDFLAGS_vmlinux	+= $(call ld-option, -X,)
 endif
 
-ifeq ($(CONFIG_RELR),y)
-LDFLAGS_vmlinux	+= --pack-dyn-relocs=relr
+USE_SECGETSPF := $(shell echo $(PATH))
+ifneq ($(findstring buildscript/build_common/core/bin, $(USE_SECGETSPF)),)
+  ifneq ($(shell secgetspf SEC_PRODUCT_FEATURE_BIOAUTH_CONFIG_FINGERPRINT_TZ), false)
+    ifeq ($(CONFIG_SENSORS_FINGERPRINT), y)
+      ifneq ($(SEC_FACTORY_BUILD), true)
+        export KBUILD_FP_SENSOR_CFLAGS := -DENABLE_SENSORS_FPRINT_SECURE
+      endif
+    endif
+  endif
+else
+  ifeq ($(CONFIG_SENSORS_FINGERPRINT), y)
+    ifneq ($(SEC_FACTORY_BUILD), true)
+      export KBUILD_FP_SENSOR_CFLAGS := -DENABLE_SENSORS_FPRINT_SECURE
+    endif
+  endif
 endif
 
 # insure the checker run with the right endianness

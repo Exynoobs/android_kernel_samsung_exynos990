@@ -184,15 +184,6 @@ SECTIONS
 	__rela_offset	= ABSOLUTE(ADDR(.rela.dyn) - KIMAGE_VADDR);
 	__rela_size	= SIZEOF(.rela.dyn);
 
-#ifdef CONFIG_RELR
-	.relr.dyn : ALIGN(8) {
-		*(.relr.dyn)
-	}
-
-	__relr_offset	= ABSOLUTE(ADDR(.relr.dyn) - KIMAGE_VADDR);
-	__relr_size	= SIZEOF(.relr.dyn);
-#endif
-
 	. = ALIGN(SEGMENT_ALIGN);
 	__initdata_end = .;
 	__init_end = .;
@@ -200,6 +191,10 @@ SECTIONS
 	_data = .;
 	_sdata = .;
 	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_ALIGN)
+
+	.test_modules : {
+		KUNIT_TEST_MODULES
+	}
 
 	/*
 	 * Data written with the MMU off but read with the MMU on requires
@@ -226,6 +221,7 @@ SECTIONS
 	BSS_SECTION(0, 0, 0)
 
 	. = ALIGN(PAGE_SIZE);
+#ifndef CONFIG_UH_RKP
 	idmap_pg_dir = .;
 	. += IDMAP_DIR_SIZE;
 
@@ -241,7 +237,7 @@ SECTIONS
 	swapper_pg_dir = .;
 	. += SWAPPER_DIR_SIZE;
 	swapper_pg_end = .;
-
+#endif
 	__pecoff_data_size = ABSOLUTE(. - __initdata_begin);
 	_end = .;
 

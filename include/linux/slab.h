@@ -84,7 +84,7 @@
 
 /* Flag to prevent checks on free */
 #ifdef CONFIG_DEBUG_OBJECTS
-# define SLAB_DEBUG_OBJECTS	((slab_flags_t __force)0x00400000U)
+#define SLAB_DEBUG_OBJECTS	((slab_flags_t __force)0x00400000U)
 #else
 # define SLAB_DEBUG_OBJECTS	0
 #endif
@@ -94,15 +94,15 @@
 
 /* Fault injection mark */
 #ifdef CONFIG_FAILSLAB
-# define SLAB_FAILSLAB		((slab_flags_t __force)0x02000000U)
+#define SLAB_FAILSLAB		((slab_flags_t __force)0x02000000U)
 #else
-# define SLAB_FAILSLAB		0
+#define SLAB_FAILSLAB		0
 #endif
 /* Account to memcg */
 #ifdef CONFIG_MEMCG_KMEM
-# define SLAB_ACCOUNT		((slab_flags_t __force)0x04000000U)
+#define SLAB_ACCOUNT		((slab_flags_t __force)0x04000000U)
 #else
-# define SLAB_ACCOUNT		0
+#define SLAB_ACCOUNT		0
 #endif
 
 #ifdef CONFIG_KASAN
@@ -415,7 +415,7 @@ static __always_inline void *kmem_cache_alloc_trace(struct kmem_cache *s,
 {
 	void *ret = kmem_cache_alloc(s, flags);
 
-	ret = kasan_kmalloc(s, ret, size, flags);
+	kasan_kmalloc(s, ret, size, flags);
 	return ret;
 }
 
@@ -426,7 +426,7 @@ kmem_cache_alloc_node_trace(struct kmem_cache *s,
 {
 	void *ret = kmem_cache_alloc_node(s, gfpflags, node);
 
-	ret = kasan_kmalloc(s, ret, size, gfpflags);
+	kasan_kmalloc(s, ret, size, gfpflags);
 	return ret;
 }
 #endif /* CONFIG_TRACING */

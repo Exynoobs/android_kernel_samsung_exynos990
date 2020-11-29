@@ -126,6 +126,7 @@ struct thread_struct {
 		unsigned long	tp2_value;
 		struct user_fpsimd_state fpsimd_state;
 	} uw;
+	struct fpsimd_kernel_state fpsimd_kernel_state;
 
 	unsigned int		fpsimd_cpu;
 	void			*sve_state;	/* SVE registers, if any */
@@ -290,14 +291,6 @@ extern void __init minsigstksz_setup(void);
 /* Userspace interface for PR_SVE_{SET,GET}_VL prctl()s: */
 #define SVE_SET_VL(arg)	sve_set_current_vl(arg)
 #define SVE_GET_VL()	sve_get_current_vl()
-
-#ifdef CONFIG_ARM64_TAGGED_ADDR_ABI
-/* PR_{SET,GET}_TAGGED_ADDR_CTRL prctl */
-long set_tagged_addr_ctrl(unsigned long arg);
-long get_tagged_addr_ctrl(void);
-#define SET_TAGGED_ADDR_CTRL(arg)	set_tagged_addr_ctrl(arg)
-#define GET_TAGGED_ADDR_CTRL()		get_tagged_addr_ctrl()
-#endif
 
 /*
  * For CONFIG_GCC_PLUGIN_STACKLEAK

@@ -42,7 +42,6 @@
 #include <linux/cleancache.h>
 #include <linux/uaccess.h>
 #include <linux/iversion.h>
-#include <linux/unicode.h>
 
 #include <linux/kthread.h>
 #include <linux/freezer.h>
@@ -54,9 +53,16 @@
 #include "acl.h"
 #include "mballoc.h"
 #include "fsmap.h"
+#include "../mount.h"
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/ext4.h>
+
+#ifdef CONFIG_FSCRYPT_SDP
+#include <linux/fscrypto_sdp_cache.h>
+#endif
+
+void (*ufs_debug_func)(void *) = NULL;
 
 static struct ext4_lazy_init *ext4_li_info;
 static struct mutex ext4_li_mtx;
@@ -385,9 +391,13 @@ static void __save_error_info(struct super_block *sb, const char *func,
 	le32_add_cpu(&es->s_error_count, 1);
 }
 
+extern int ignore_fs_panic;
+
 static void save_error_info(struct super_block *sb, const char *func,
 			    unsigned int line)
 {
+	if (unlikely(ignore_fs_panic))
+		return;
 	__save_error_info(sb, func, line);
 	ext4_commit_super(sb, 1);
 }
@@ -452,12 +462,12 @@ static bool system_going_down(void)
  * that error until we've noted it down and cleared it.
  */
 
-static void ext4_handle_error(struct super_block *sb)
+static void ext4_handle_error(struct super_block *sb, char *buf)
 {
 	if (test_opt(sb, WARN_ON_ERROR))
 		WARN_ON_ONCE(1);
 
-	if (sb_rdonly(sb))
+	if (sb_rdonly(sb) || ignore_fs_panic)
 		return;
 
 	if (!test_opt(sb, ERRORS_CONT)) {
@@ -484,8 +494,9 @@ static void ext4_handle_error(struct super_block *sb)
 		if (EXT4_SB(sb)->s_journal &&
 		  !(EXT4_SB(sb)->s_journal->j_flags & JBD2_REC_ERR))
 			return;
-		panic("EXT4-fs (device %s): panic forced after error\n",
-			sb->s_id);
+		if (ufs_debug_func)
+			ufs_debug_func(NULL);
+		panic("EXT4(%s:%s\n", sb->s_id, buf?buf:"no message)");
 	}
 }
 
@@ -498,6 +509,7 @@ void __ext4_error(struct super_block *sb, const char *function,
 {
 	struct va_format vaf;
 	va_list args;
+	char *page_buf = NULL;
 
 	if (unlikely(ext4_forced_shutdown(EXT4_SB(sb))))
 		return;
@@ -510,10 +522,20 @@ void __ext4_error(struct super_block *sb, const char *function,
 		printk(KERN_CRIT
 		       "EXT4-fs error (device %s): %s:%d: comm %s: %pV\n",
 		       sb->s_id, function, line, current->comm, &vaf);
+		page_buf = (char *)__get_free_page(GFP_ATOMIC);
+		if (page_buf)
+			sprintf(page_buf, "%s:%u:%pV)"
+				"Keep this device after RDX, do not reboot",
+				function, line, &vaf);
+		else
+			printk(KERN_ERR "__ext4_error:"
+				"failed to allocate page buf for panic msg\n");
 		va_end(args);
 	}
 	save_error_info(sb, function, line);
-	ext4_handle_error(sb);
+	ext4_handle_error(sb, page_buf);
+	if (page_buf)
+		free_page((unsigned long)page_buf);
 }
 
 void __ext4_error_inode(struct inode *inode, const char *function,
@@ -523,6 +545,7 @@ void __ext4_error_inode(struct inode *inode, const char *function,
 	va_list args;
 	struct va_format vaf;
 	struct ext4_super_block *es = EXT4_SB(inode->i_sb)->s_es;
+	char *page_buf = NULL;
 
 	if (unlikely(ext4_forced_shutdown(EXT4_SB(inode->i_sb))))
 		return;
@@ -544,10 +567,20 @@ void __ext4_error_inode(struct inode *inode, const char *function,
 			       "inode #%lu: comm %s: %pV\n",
 			       inode->i_sb->s_id, function, line, inode->i_ino,
 			       current->comm, &vaf);
+		page_buf = (char *)__get_free_page(GFP_ATOMIC);
+		if (page_buf)
+			sprintf(page_buf, "%s:%u:%pV)"
+				"Keep this device after RDX, do not reboot",
+				function, line, &vaf);
+		else
+			printk(KERN_ERR "__ext4_error:"
+				"failed to allocate page buf for panic msg\n");
 		va_end(args);
 	}
 	save_error_info(inode->i_sb, function, line);
-	ext4_handle_error(inode->i_sb);
+	ext4_handle_error(inode->i_sb, page_buf);
+	if (page_buf)
+		free_page((unsigned long)page_buf);
 }
 
 void __ext4_error_file(struct file *file, const char *function,
@@ -559,6 +592,7 @@ void __ext4_error_file(struct file *file, const char *function,
 	struct ext4_super_block *es;
 	struct inode *inode = file_inode(file);
 	char pathname[80], *path;
+	char *page_buf = NULL;
 
 	if (unlikely(ext4_forced_shutdown(EXT4_SB(inode->i_sb))))
 		return;
@@ -585,10 +619,20 @@ void __ext4_error_file(struct file *file, const char *function,
 			       "comm %s: path %s: %pV\n",
 			       inode->i_sb->s_id, function, line, inode->i_ino,
 			       current->comm, path, &vaf);
+		page_buf = (char *)__get_free_page(GFP_ATOMIC);
+		if (page_buf)
+			sprintf(page_buf, "%s:%u:%pV)"
+				"Keep this device after RDX, do not reboot",
+				function, line, &vaf);
+		else
+			printk(KERN_ERR "__ext4_error:"
+				"failed to allocate page buf for panic msg\n");
 		va_end(args);
 	}
 	save_error_info(inode->i_sb, function, line);
-	ext4_handle_error(inode->i_sb);
+	ext4_handle_error(inode->i_sb, page_buf);
+	if (page_buf)
+		free_page((unsigned long)page_buf);
 }
 
 const char *ext4_decode_error(struct super_block *sb, int errno,
@@ -639,6 +683,7 @@ void __ext4_std_error(struct super_block *sb, const char *function,
 {
 	char nbuf[16];
 	const char *errstr;
+	char *page_buf = NULL;
 
 	if (unlikely(ext4_forced_shutdown(EXT4_SB(sb))))
 		return;
@@ -656,7 +701,17 @@ void __ext4_std_error(struct super_block *sb, const char *function,
 	}
 
 	save_error_info(sb, function, line);
-	ext4_handle_error(sb);
+	page_buf = (char *)__get_free_page(GFP_ATOMIC);
+	if (page_buf)
+		sprintf(page_buf, "%s:%u: <%s>", function, line,
+				"__ext4_std_error");
+	else
+		printk(KERN_ERR "__ext4_error:"
+				"failed to allocate page buf for panic msg\n");
+
+	ext4_handle_error(sb, page_buf);
+	if (page_buf)
+		free_page((unsigned long)page_buf);
 }
 
 /*
@@ -703,6 +758,10 @@ void __ext4_abort(struct super_block *sb, const char *function,
 		if (EXT4_SB(sb)->s_journal &&
 		  !(EXT4_SB(sb)->s_journal->j_flags & JBD2_REC_ERR))
 			return;
+		if (ignore_fs_panic)
+			return;
+		if (ufs_debug_func)
+			ufs_debug_func(NULL);
 		panic("EXT4-fs panic from previous error\n");
 	}
 }
@@ -772,6 +831,7 @@ __acquires(bitlock)
 	struct va_format vaf;
 	va_list args;
 	struct ext4_super_block *es = EXT4_SB(sb)->s_es;
+	char *page_buf = NULL;
 
 	if (unlikely(ext4_forced_shutdown(EXT4_SB(sb))))
 		return;
@@ -793,6 +853,14 @@ __acquires(bitlock)
 			printk(KERN_CONT "block %llu:",
 			       (unsigned long long) block);
 		printk(KERN_CONT "%pV\n", &vaf);
+		page_buf = (char *)__get_free_page(GFP_ATOMIC);
+		if (page_buf)
+			sprintf(page_buf, "%s:%u:%pV)"
+				"Keep this device after RDX, do not reboot",
+				function, line, &vaf);
+		else
+			printk(KERN_ERR "__ext4_error:"
+				"failed to allocate page buf for panic msg\n");
 		va_end(args);
 	}
 
@@ -806,7 +874,9 @@ __acquires(bitlock)
 
 	ext4_unlock_group(sb, grp);
 	ext4_commit_super(sb, 1);
-	ext4_handle_error(sb);
+	ext4_handle_error(sb, page_buf);
+	if (page_buf)
+		free_page((unsigned long)page_buf);
 	/*
 	 * We only get here in the ERRORS_RO case; relocking the group
 	 * may be dangerous, but nothing bad will happen since the
@@ -1056,9 +1126,6 @@ static void ext4_put_super(struct super_block *sb)
 		crypto_free_shash(sbi->s_chksum_driver);
 	kfree(sbi->s_blockgroup_lock);
 	fs_put_dax(sbi->s_daxdev);
-#ifdef CONFIG_UNICODE
-	utf8_unload(sbi->s_encoding);
-#endif
 	kfree(sbi);
 }
 
@@ -1106,9 +1173,12 @@ static struct inode *ext4_alloc_inode(struct super_block *sb)
 static int ext4_drop_inode(struct inode *inode)
 {
 	int drop = generic_drop_inode(inode);
-
-	if (!drop)
-		drop = fscrypt_drop_inode(inode);
+#ifdef CONFIG_FSCRYPT_SDP
+	if (!drop && fscrypt_sdp_is_locked_sensitive_inode(inode)) {
+		fscrypt_sdp_drop_inode(inode);
+		drop = 1;
+	}
+#endif
 
 	trace_ext4_drop_inode(inode, drop);
 	return drop;
@@ -1117,9 +1187,6 @@ static int ext4_drop_inode(struct inode *inode)
 static void ext4_i_callback(struct rcu_head *head)
 {
 	struct inode *inode = container_of(head, struct inode, i_rcu);
-
-	fscrypt_free_inode(inode);
-
 	kmem_cache_free(ext4_inode_cachep, EXT4_I(inode));
 }
 
@@ -1186,7 +1253,6 @@ void ext4_clear_inode(struct inode *inode)
 		EXT4_I(inode)->jinode = NULL;
 	}
 	fscrypt_put_encryption_info(inode);
-	fsverity_cleanup_inode(inode);
 }
 
 static struct inode *ext4_nfs_get_inode(struct super_block *sb,
@@ -1253,7 +1319,7 @@ static int bdev_try_to_free_page(struct super_block *sb, struct page *page,
 	return try_to_free_buffers(page);
 }
 
-#ifdef CONFIG_FS_ENCRYPTION
+#ifdef CONFIG_EXT4_FS_ENCRYPTION
 static int ext4_get_context(struct inode *inode, void *ctx, size_t len)
 {
 	return ext4_xattr_get(inode, EXT4_XATTR_INDEX_ENCRYPTION,
@@ -1344,38 +1410,34 @@ retry:
 	return res;
 }
 
+#if defined(CONFIG_DDAR) || defined(CONFIG_FSCRYPT_SDP)
+static inline int ext4_get_knox_context(struct inode *inode,
+		const char *name, void *buffer, size_t buffer_size) {
+	return ext4_xattr_get(inode, EXT4_XATTR_INDEX_ENCRYPTION,	name, buffer, buffer_size);
+}
+static inline int ext4_set_knox_context(struct inode *inode,
+		const char *name, const void *value, size_t size, void *fs_data) {
+	return ext4_xattr_set(inode, EXT4_XATTR_INDEX_ENCRYPTION,
+			name ? name : EXT4_XATTR_NAME_ENCRYPTION_CONTEXT, value, size, 0);
+}
+#endif
+
 static bool ext4_dummy_context(struct inode *inode)
 {
 	return DUMMY_ENCRYPTION_ENABLED(EXT4_SB(inode->i_sb));
-}
-
-static bool ext4_has_stable_inodes(struct super_block *sb)
-{
-	return ext4_has_feature_stable_inodes(sb);
-}
-
-static void ext4_get_ino_and_lblk_bits(struct super_block *sb,
-				       int *ino_bits_ret, int *lblk_bits_ret)
-{
-	*ino_bits_ret = 8 * sizeof(EXT4_SB(sb)->s_es->s_inodes_count);
-	*lblk_bits_ret = 8 * sizeof(ext4_lblk_t);
-}
-
-static bool ext4_inline_crypt_enabled(struct super_block *sb)
-{
-	return test_opt(sb, INLINECRYPT);
 }
 
 static const struct fscrypt_operations ext4_cryptops = {
 	.key_prefix		= "ext4:",
 	.get_context		= ext4_get_context,
 	.set_context		= ext4_set_context,
+#if defined(CONFIG_DDAR) || defined(CONFIG_FSCRYPT_SDP)
+	.get_knox_context	= ext4_get_knox_context,
+	.set_knox_context	= ext4_set_knox_context,
+#endif
 	.dummy_context		= ext4_dummy_context,
 	.empty_dir		= ext4_empty_dir,
 	.max_namelen		= EXT4_NAME_LEN,
-	.has_stable_inodes	= ext4_has_stable_inodes,
-	.get_ino_and_lblk_bits	= ext4_get_ino_and_lblk_bits,
-	.inline_crypt_enabled	= ext4_inline_crypt_enabled,
 };
 #endif
 
@@ -1470,7 +1532,6 @@ enum {
 	Opt_journal_path, Opt_journal_checksum, Opt_journal_async_commit,
 	Opt_abort, Opt_data_journal, Opt_data_ordered, Opt_data_writeback,
 	Opt_data_err_abort, Opt_data_err_ignore, Opt_test_dummy_encryption,
-	Opt_inlinecrypt,
 	Opt_usrjquota, Opt_grpjquota, Opt_offusrjquota, Opt_offgrpjquota,
 	Opt_jqfmt_vfsold, Opt_jqfmt_vfsv0, Opt_jqfmt_vfsv1, Opt_quota,
 	Opt_noquota, Opt_barrier, Opt_nobarrier, Opt_err,
@@ -1567,7 +1628,6 @@ static const match_table_t tokens = {
 	{Opt_noinit_itable, "noinit_itable"},
 	{Opt_max_dir_size_kb, "max_dir_size_kb=%u"},
 	{Opt_test_dummy_encryption, "test_dummy_encryption"},
-	{Opt_inlinecrypt, "inlinecrypt"},
 	{Opt_nombcache, "nombcache"},
 	{Opt_nombcache, "no_mbcache"},	/* for backward compatibility */
 	{Opt_removed, "check=none"},	/* mount option from ext2/3 */
@@ -1779,44 +1839,9 @@ static const struct mount_opts {
 	{Opt_jqfmt_vfsv1, QFMT_VFS_V1, MOPT_QFMT},
 	{Opt_max_dir_size_kb, 0, MOPT_GTE0},
 	{Opt_test_dummy_encryption, 0, MOPT_GTE0},
-#ifdef CONFIG_FS_ENCRYPTION_INLINE_CRYPT
-	{Opt_inlinecrypt, EXT4_MOUNT_INLINECRYPT, MOPT_SET},
-#else
-	{Opt_inlinecrypt, EXT4_MOUNT_INLINECRYPT, MOPT_NOSUPPORT},
-#endif
 	{Opt_nombcache, EXT4_MOUNT_NO_MBCACHE, MOPT_SET},
 	{Opt_err, 0, 0}
 };
-
-#ifdef CONFIG_UNICODE
-static const struct ext4_sb_encodings {
-	__u16 magic;
-	char *name;
-	char *version;
-} ext4_sb_encoding_map[] = {
-	{EXT4_ENC_UTF8_12_1, "utf8", "12.1.0"},
-};
-
-static int ext4_sb_read_encoding(const struct ext4_super_block *es,
-				 const struct ext4_sb_encodings **encoding,
-				 __u16 *flags)
-{
-	__u16 magic = le16_to_cpu(es->s_encoding);
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(ext4_sb_encoding_map); i++)
-		if (magic == ext4_sb_encoding_map[i].magic)
-			break;
-
-	if (i >= ARRAY_SIZE(ext4_sb_encoding_map))
-		return -EINVAL;
-
-	*encoding = &ext4_sb_encoding_map[i];
-	*flags = le16_to_cpu(es->s_encoding_flags);
-
-	return 0;
-}
-#endif
 
 static int handle_mount_opt(struct super_block *sb, char *opt, int token,
 			    substring_t *args, unsigned long *journal_devnum,
@@ -2000,7 +2025,7 @@ static int handle_mount_opt(struct super_block *sb, char *opt, int token,
 		*journal_ioprio =
 			IOPRIO_PRIO_VALUE(IOPRIO_CLASS_BE, arg);
 	} else if (token == Opt_test_dummy_encryption) {
-#ifdef CONFIG_FS_ENCRYPTION
+#ifdef CONFIG_EXT4_FS_ENCRYPTION
 		sbi->s_mount_flags |= EXT4_MF_TEST_DUMMY_ENCRYPTION;
 		ext4_msg(sb, KERN_WARNING,
 			 "Test dummy encryption mode enabled");
@@ -2948,15 +2973,6 @@ static int ext4_feature_set_ok(struct super_block *sb, int readonly)
 		return 0;
 	}
 
-#ifndef CONFIG_UNICODE
-	if (ext4_has_feature_casefold(sb)) {
-		ext4_msg(sb, KERN_ERR,
-			 "Filesystem with casefold feature cannot be "
-			 "mounted without CONFIG_UNICODE");
-		return 0;
-	}
-#endif
-
 	if (readonly)
 		return 1;
 
@@ -3646,7 +3662,8 @@ static void ext4_set_resv_clusters(struct super_block *sb)
 			 sbi->s_cluster_bits);
 
 	do_div(resv_clusters, 50);
-	resv_clusters = min_t(ext4_fsblk_t, resv_clusters, 4096);
+	/* Do not reserve clusters */
+	resv_clusters = min_t(ext4_fsblk_t, resv_clusters, 0);
 
 	atomic64_set(&sbi->s_resv_clusters, resv_clusters);
 }
@@ -3847,43 +3864,6 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 			   &journal_ioprio, 0))
 		goto failed_mount;
 
-#ifdef CONFIG_UNICODE
-	if (ext4_has_feature_casefold(sb) && !sbi->s_encoding) {
-		const struct ext4_sb_encodings *encoding_info;
-		struct unicode_map *encoding;
-		__u16 encoding_flags;
-
-		if (ext4_has_feature_encrypt(sb)) {
-			ext4_msg(sb, KERN_ERR,
-				 "Can't mount with encoding and encryption");
-			goto failed_mount;
-		}
-
-		if (ext4_sb_read_encoding(es, &encoding_info,
-					  &encoding_flags)) {
-			ext4_msg(sb, KERN_ERR,
-				 "Encoding requested by superblock is unknown");
-			goto failed_mount;
-		}
-
-		encoding = utf8_load(encoding_info->version);
-		if (IS_ERR(encoding)) {
-			ext4_msg(sb, KERN_ERR,
-				 "can't mount with superblock charset: %s-%s "
-				 "not supported by the kernel. flags: 0x%x.",
-				 encoding_info->name, encoding_info->version,
-				 encoding_flags);
-			goto failed_mount;
-		}
-		ext4_msg(sb, KERN_INFO,"Using encoding defined by superblock: "
-			 "%s-%s with flags 0x%hx", encoding_info->name,
-			 encoding_info->version?:"\b", encoding_flags);
-
-		sbi->s_encoding = encoding;
-		sbi->s_encoding_flags = encoding_flags;
-	}
-#endif
-
 	if (test_opt(sb, DATA_FLAGS) == EXT4_MOUNT_JOURNAL_DATA) {
 		printk_once(KERN_WARNING "EXT4-fs: Warning: mounting "
 			    "with data=journal disables delayed "
@@ -3916,6 +3896,10 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 
 	sb->s_flags = (sb->s_flags & ~SB_POSIXACL) |
 		(test_opt(sb, POSIX_ACL) ? SB_POSIXACL : 0);
+
+#ifdef CONFIG_FIVE
+	sb->s_flags |= MS_I_VERSION;
+#endif
 
 	if (le32_to_cpu(es->s_rev_level) == EXT4_GOOD_OLD_REV &&
 	    (ext4_has_compat_features(sb) ||
@@ -4321,11 +4305,8 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 	sb->s_op = &ext4_sops;
 	sb->s_export_op = &ext4_export_ops;
 	sb->s_xattr = ext4_xattr_handlers;
-#ifdef CONFIG_FS_ENCRYPTION
+#ifdef CONFIG_EXT4_FS_ENCRYPTION
 	sb->s_cop = &ext4_cryptops;
-#endif
-#ifdef CONFIG_FS_VERITY
-	sb->s_vop = &ext4_verityops;
 #endif
 #ifdef CONFIG_QUOTA
 	sb->dq_op = &ext4_quota_operations;
@@ -4474,11 +4455,6 @@ no_journal:
 		goto failed_mount_wq;
 	}
 
-	if (ext4_has_feature_verity(sb) && blocksize != PAGE_SIZE) {
-		ext4_msg(sb, KERN_ERR, "Unsupported blocksize for fs-verity");
-		goto failed_mount_wq;
-	}
-
 	if (DUMMY_ENCRYPTION_ENABLED(sbi) && !sb_rdonly(sb) &&
 	    !ext4_has_feature_encrypt(sb)) {
 		ext4_set_feature_encrypt(sb);
@@ -4526,12 +4502,6 @@ no_journal:
 		iput(root);
 		goto failed_mount4;
 	}
-
-#ifdef CONFIG_UNICODE
-	if (sbi->s_encoding)
-		sb->s_d_op = &ext4_dentry_ops;
-#endif
-
 	sb->s_root = d_make_root(root);
 	if (!sb->s_root) {
 		ext4_msg(sb, KERN_ERR, "get root dentry failed");
@@ -4714,13 +4684,10 @@ failed_mount2:
 		brelse(sbi->s_group_desc[i]);
 	kvfree(sbi->s_group_desc);
 failed_mount:
+	printk(KERN_ERR "printing data of superblock-bh\n");
+	print_bh(sb, bh, 0, EXT4_BLOCK_SIZE(sb));
 	if (sbi->s_chksum_driver)
 		crypto_free_shash(sbi->s_chksum_driver);
-
-#ifdef CONFIG_UNICODE
-	utf8_unload(sbi->s_encoding);
-#endif
-
 #ifdef CONFIG_QUOTA
 	for (i = 0; i < EXT4_MAXQUOTAS; i++)
 		kfree(sbi->s_qf_names[i]);
@@ -5020,6 +4987,13 @@ static int ext4_commit_super(struct super_block *sb, int sync)
 	 */
 	if (!buffer_mapped(sbh))
 		return error;
+
+	if (unlikely(le16_to_cpu(es->s_magic) != EXT4_SUPER_MAGIC)) {
+		print_bh(sb, sbh, 0, EXT4_BLOCK_SIZE(sb));
+		if (test_opt(sb, ERRORS_PANIC))
+			panic("EXT4(Can not find EXT4_SUPER_MAGIC");
+		return -EIO;
+	}
 
 	/*
 	 * If the file system is mounted read-only, don't update the
@@ -6063,6 +6037,84 @@ static int ext4_get_next_id(struct super_block *sb, struct kqid *qid)
 }
 #endif
 
+void print_iloc_info(struct super_block *sb, struct ext4_iloc iloc)
+{
+	printk(KERN_ERR "iloc info, offset : %lu,", iloc.offset);
+	printk(KERN_ERR " group# : %u\n", iloc.block_group);
+	printk(KERN_ERR "sb info, inodes per group : %lu,",
+			EXT4_SB(sb)->s_inodes_per_group);
+	printk(KERN_ERR " inode size : %d\n", EXT4_SB(sb)->s_inode_size);
+	print_bh(sb, iloc.bh, 0, EXT4_BLOCK_SIZE(sb));
+}
+
+void print_bh(struct super_block *sb, struct buffer_head *bh
+		, int start, int len)
+{
+	if (ignore_fs_panic)
+		return;
+
+	if (bh) {
+		printk(KERN_ERR " print_bh: bh %p,"
+				" bh->b_size %lu, bh->b_data %p\n",
+				(void *) bh, (long unsigned int) bh->b_size,
+				(void *) bh->b_data);
+		print_block_data(sb, bh->b_blocknr, bh->b_data, start, len);
+	} else {
+		printk(KERN_ERR " print_bh: bh is null!\n");
+	}
+}
+
+void print_block_data(struct super_block *sb, sector_t blocknr,
+		unsigned char *data_to_dump, int start, int len)
+{
+	int i, j;
+	int bh_offset = (start / 16) * 16;
+	char row_data[17] = { 0, };
+	char row_hex[50] = { 0, };
+	char ch;
+	struct mount *m = NULL;
+
+	printk(KERN_ERR "As EXT4-fs error, printing data in hex\n");
+	printk(KERN_ERR " [partition info] s_id : %s, start sector# : %lu\n",
+			sb->s_id,
+			(long unsigned int) sb->s_bdev->bd_part->start_sect);
+	printk(KERN_ERR " dump block# : %lu, start offset(byte) : %d\n",
+			(long unsigned int) blocknr, start);
+	printk(KERN_ERR " length(byte) : %d, data_to_dump 0x%p\n",
+			len, (void *)data_to_dump);
+	if (!list_empty(&sb->s_mounts)) {
+		m = list_first_entry(&sb->s_mounts, struct mount, mnt_instance);
+		if (m)
+			printk(KERN_ERR " mountpoint : %s\n",
+				m->mnt_mountpoint->d_name.name);
+	}
+	printk(KERN_ERR "-------------------------------------------------\n");
+
+	for (i = 0; i < (len + 15) / 16; i++) {
+		for (j = 0; j < 16; j++) {
+			ch = *(data_to_dump + bh_offset + j);
+			if (start <= bh_offset + j
+					&& start + len > bh_offset + j) {
+
+				if (isascii(ch) && isprint(ch))
+					sprintf(row_data + j, "%c", ch);
+				else
+					sprintf(row_data + j, ".");
+
+				sprintf(row_hex + (j * 3), "%2.2x ", ch);
+			} else {
+				sprintf(row_data + j, " ");
+				sprintf(row_hex + (j * 3), "-- ");
+			}
+		}
+
+		printk(KERN_ERR "0x%4.4x : %s | %s\n",
+			bh_offset, row_hex, row_data);
+		bh_offset += 16;
+	}
+	printk(KERN_ERR "-------------------------------------------------\n");
+}
+
 static struct dentry *ext4_mount(struct file_system_type *fs_type, int flags,
 		       const char *dev_name, void *data)
 {
@@ -6155,10 +6207,6 @@ static int __init ext4_init_fs(void)
 	if (err)
 		return err;
 
-	err = ext4_init_post_read_processing();
-	if (err)
-		goto out6;
-
 	err = ext4_init_pageio();
 	if (err)
 		goto out5;
@@ -6197,8 +6245,6 @@ out3:
 out4:
 	ext4_exit_pageio();
 out5:
-	ext4_exit_post_read_processing();
-out6:
 	ext4_exit_es();
 
 	return err;
@@ -6215,7 +6261,6 @@ static void __exit ext4_exit_fs(void)
 	ext4_exit_sysfs();
 	ext4_exit_system_zone();
 	ext4_exit_pageio();
-	ext4_exit_post_read_processing();
 	ext4_exit_es();
 }
 

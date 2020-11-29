@@ -406,6 +406,9 @@ static int __check_block_validity(struct inode *inode, const char *func,
 		return 0;
 	if (!ext4_data_block_valid(EXT4_SB(inode->i_sb), map->m_pblk,
 				   map->m_len)) {
+		printk(KERN_ERR "printing inode..\n");
+		print_block_data(inode->i_sb, 0, (unsigned char *)inode, 0,
+				EXT4_INODE_SIZE(inode->i_sb));
 		ext4_error_inode(inode, func, line, map->m_pblk,
 				 "lblock %lu mapped to illegal pblock %llu "
 				 "(length %d)", (unsigned long) map->m_lblk,
@@ -420,7 +423,7 @@ int ext4_issue_zeroout(struct inode *inode, ext4_lblk_t lblk, ext4_fsblk_t pblk,
 {
 	int ret;
 
-	if (IS_ENCRYPTED(inode))
+	if (ext4_encrypted_inode(inode))
 		return fscrypt_zeroout_range(inode, lblk, pblk, len);
 
 	ret = sb_issue_zeroout(inode->i_sb, pblk, len, GFP_NOFS);
@@ -1161,7 +1164,7 @@ int do_journal_get_write_access(handle_t *handle,
 	return ret;
 }
 
-#ifdef CONFIG_FS_ENCRYPTION
+#ifdef CONFIG_EXT4_FS_ENCRYPTION
 static int ext4_block_write_begin(struct page *page, loff_t pos, unsigned len,
 				  get_block_t *get_block)
 {
@@ -1175,6 +1178,9 @@ static int ext4_block_write_begin(struct page *page, loff_t pos, unsigned len,
 	unsigned bbits;
 	struct buffer_head *bh, *head, *wait[2], **wait_bh = wait;
 	bool decrypt = false;
+#ifdef CONFIG_DDAR
+	bool dd_decrypt = false;
+#endif
 
 	BUG_ON(!PageLocked(page));
 	BUG_ON(from > PAGE_SIZE);
@@ -1226,9 +1232,21 @@ static int ext4_block_write_begin(struct page *page, loff_t pos, unsigned len,
 		if (!buffer_uptodate(bh) && !buffer_delay(bh) &&
 		    !buffer_unwritten(bh) &&
 		    (block_start < from || block_end > to)) {
-			ll_rw_block(REQ_OP_READ, 0, 1, &bh);
+		    int bi_opf = 0;
+
+			if (S_ISREG(inode->i_mode) && ext4_encrypted_inode(inode)
+					&& fscrypt_has_encryption_key(inode)) {
+					bh->b_private = fscrypt_get_diskcipher(inode);
+					if (bh->b_private)
+						bi_opf = REQ_CRYPT;
+				}
+			ll_rw_block(REQ_OP_READ, bi_opf, 1, &bh);
 			*wait_bh++ = bh;
-			decrypt = fscrypt_inode_uses_fs_layer_crypto(inode);
+			decrypt = ext4_encrypted_inode(inode) &&
+				S_ISREG(inode->i_mode) && !bh->b_private;
+#ifdef CONFIG_DDAR
+			dd_decrypt = fscrypt_dd_encrypted_inode(inode);
+#endif
 		}
 	}
 	/*
@@ -1242,7 +1260,14 @@ static int ext4_block_write_begin(struct page *page, loff_t pos, unsigned len,
 	if (unlikely(err))
 		page_zero_new_buffers(page, from, to);
 	else if (decrypt)
-		err = fscrypt_decrypt_pagecache_blocks(page, PAGE_SIZE, 0);
+		err = fscrypt_decrypt_page(page->mapping->host, page,
+				PAGE_SIZE, 0, page->index);
+
+#ifdef CONFIG_DDAR
+	if (dd_decrypt)
+		err = fscrypt_dd_decrypt_page(inode, page);
+#endif
+
 	return err;
 }
 #endif
@@ -1322,7 +1347,7 @@ retry_journal:
 	/* In case writeback began while the page was unlocked */
 	wait_for_stable_page(page);
 
-#ifdef CONFIG_FS_ENCRYPTION
+#ifdef CONFIG_EXT4_FS_ENCRYPTION
 	if (ext4_should_dioread_nolock(inode))
 		ret = ext4_block_write_begin(page, pos, len,
 					     ext4_get_block_unwritten);
@@ -1343,9 +1368,6 @@ retry_journal:
 	}
 
 	if (ret) {
-		bool extended = (pos + len > inode->i_size) &&
-				!ext4_verity_in_progress(inode);
-
 		unlock_page(page);
 		/*
 		 * __block_write_begin may have instantiated a few blocks
@@ -1355,11 +1377,11 @@ retry_journal:
 		 * Add inode to orphan list in case we crash before
 		 * truncate finishes
 		 */
-		if (extended && ext4_can_truncate(inode))
+		if (pos + len > inode->i_size && ext4_can_truncate(inode))
 			ext4_orphan_add(handle, inode);
 
 		ext4_journal_stop(handle);
-		if (extended) {
+		if (pos + len > inode->i_size) {
 			ext4_truncate_failed_write(inode);
 			/*
 			 * If truncate failed early the inode might
@@ -1412,7 +1434,6 @@ static int ext4_write_end(struct file *file,
 	int ret = 0, ret2;
 	int i_size_changed = 0;
 	int inline_data = ext4_has_inline_data(inode);
-	bool verity = ext4_verity_in_progress(inode);
 
 	trace_android_fs_datawrite_end(inode, pos, len);
 	trace_ext4_write_end(inode, pos, len, copied);
@@ -1431,16 +1452,12 @@ static int ext4_write_end(struct file *file,
 	/*
 	 * it's important to update i_size while still holding page lock:
 	 * page writeout could otherwise come in and zero beyond i_size.
-	 *
-	 * If FS_IOC_ENABLE_VERITY is running on this inode, then Merkle tree
-	 * blocks are being written past EOF, so skip the i_size update.
 	 */
-	if (!verity)
-		i_size_changed = ext4_update_inode_size(inode, pos + copied);
+	i_size_changed = ext4_update_inode_size(inode, pos + copied);
 	unlock_page(page);
 	put_page(page);
 
-	if (old_size < pos && !verity)
+	if (old_size < pos)
 		pagecache_isize_extended(inode, old_size, pos);
 	/*
 	 * Don't mark the inode dirty under page lock. First, it unnecessarily
@@ -1451,7 +1468,7 @@ static int ext4_write_end(struct file *file,
 	if (i_size_changed || inline_data)
 		ext4_mark_inode_dirty(handle, inode);
 
-	if (pos + len > inode->i_size && !verity && ext4_can_truncate(inode))
+	if (pos + len > inode->i_size && ext4_can_truncate(inode))
 		/* if we have allocated more blocks and copied
 		 * less. We will have blocks allocated outside
 		 * inode->i_size. So truncate them
@@ -1462,7 +1479,7 @@ errout:
 	if (!ret)
 		ret = ret2;
 
-	if (pos + len > inode->i_size && !verity) {
+	if (pos + len > inode->i_size) {
 		ext4_truncate_failed_write(inode);
 		/*
 		 * If truncate failed early the inode might still be
@@ -1523,7 +1540,6 @@ static int ext4_journalled_write_end(struct file *file,
 	unsigned from, to;
 	int size_changed = 0;
 	int inline_data = ext4_has_inline_data(inode);
-	bool verity = ext4_verity_in_progress(inode);
 
 	trace_android_fs_datawrite_end(inode, pos, len);
 	trace_ext4_journalled_write_end(inode, pos, len, copied);
@@ -1554,14 +1570,13 @@ static int ext4_journalled_write_end(struct file *file,
 		if (!partial)
 			SetPageUptodate(page);
 	}
-	if (!verity)
-		size_changed = ext4_update_inode_size(inode, pos + copied);
+	size_changed = ext4_update_inode_size(inode, pos + copied);
 	ext4_set_inode_state(inode, EXT4_STATE_JDATA);
 	EXT4_I(inode)->i_datasync_tid = handle->h_transaction->t_tid;
 	unlock_page(page);
 	put_page(page);
 
-	if (old_size < pos && !verity)
+	if (old_size < pos)
 		pagecache_isize_extended(inode, old_size, pos);
 
 	if (size_changed || inline_data) {
@@ -1570,7 +1585,7 @@ static int ext4_journalled_write_end(struct file *file,
 			ret = ret2;
 	}
 
-	if (pos + len > inode->i_size && !verity && ext4_can_truncate(inode))
+	if (pos + len > inode->i_size && ext4_can_truncate(inode))
 		/* if we have allocated more blocks and copied
 		 * less. We will have blocks allocated outside
 		 * inode->i_size. So truncate them
@@ -1581,7 +1596,7 @@ errout:
 	ret2 = ext4_journal_stop(handle);
 	if (!ret)
 		ret = ret2;
-	if (pos + len > inode->i_size && !verity) {
+	if (pos + len > inode->i_size) {
 		ext4_truncate_failed_write(inode);
 		/*
 		 * If truncate failed early the inode might still be
@@ -2147,8 +2162,7 @@ static int ext4_writepage(struct page *page,
 
 	trace_ext4_writepage(page);
 	size = i_size_read(inode);
-	if (page->index == size >> PAGE_SHIFT &&
-	    !ext4_verity_in_progress(inode))
+	if (page->index == size >> PAGE_SHIFT)
 		len = size & ~PAGE_MASK;
 	else
 		len = PAGE_SIZE;
@@ -2204,7 +2218,10 @@ static int ext4_writepage(struct page *page,
 		return -ENOMEM;
 	}
 	ret = ext4_bio_write_page(&io_submit, page, len, wbc, keep_towrite);
-	ext4_io_submit(&io_submit);
+// CONFIG_DDAR [
+	if (ext4_io_submit_to_dd(inode, &io_submit) == -EOPNOTSUPP)
+		ext4_io_submit(&io_submit);
+// ] CONFIG_DDAR
 	/* Drop io_end reference we got from init */
 	ext4_put_io_end_defer(io_submit.io_end);
 	return ret;
@@ -2232,8 +2249,7 @@ static int mpage_submit_page(struct mpage_da_data *mpd, struct page *page)
 	 * after page tables are updated.
 	 */
 	size = i_size_read(mpd->inode);
-	if (page->index == size >> PAGE_SHIFT &&
-	    !ext4_verity_in_progress(mpd->inode))
+	if (page->index == size >> PAGE_SHIFT)
 		len = size & ~PAGE_MASK;
 	else
 		len = PAGE_SIZE;
@@ -2331,9 +2347,6 @@ static int mpage_process_page_bufs(struct mpage_da_data *mpd,
 	int err;
 	ext4_lblk_t blocks = (i_size_read(inode) + i_blocksize(inode) - 1)
 							>> inode->i_blkbits;
-
-	if (ext4_verity_in_progress(inode))
-		blocks = EXT_MAX_BLOCKS;
 
 	do {
 		BUG_ON(buffer_locked(bh));
@@ -2843,7 +2856,10 @@ retry:
 	}
 	ret = mpage_prepare_extent_to_map(&mpd);
 	/* Submit prepared bio */
-	ext4_io_submit(&mpd.io_submit);
+// CONFIG_DDAR [
+	if (ext4_io_submit_to_dd(inode, &mpd.io_submit) == -EOPNOTSUPP)
+		ext4_io_submit(&mpd.io_submit);
+// ] CONFIG_DDAR
 	ext4_put_io_end_defer(mpd.io_submit.io_end);
 	mpd.io_submit.io_end = NULL;
 	/* Unlock pages we didn't use */
@@ -2916,7 +2932,10 @@ retry:
 			mpd.do_map = 0;
 		}
 		/* Submit prepared bio */
-		ext4_io_submit(&mpd.io_submit);
+// CONFIG_DDAR [
+		if (ext4_io_submit_to_dd(inode, &mpd.io_submit) == -EOPNOTSUPP)
+			ext4_io_submit(&mpd.io_submit);
+// ] CONFIG_DDAR
 		/* Unlock pages we didn't use */
 		mpage_release_unused_pages(&mpd, give_up_on_write);
 		/*
@@ -3054,8 +3073,8 @@ static int ext4_da_write_begin(struct file *file, struct address_space *mapping,
 
 	index = pos >> PAGE_SHIFT;
 
-	if (ext4_nonda_switch(inode->i_sb) || S_ISLNK(inode->i_mode) ||
-	    ext4_verity_in_progress(inode)) {
+	if (ext4_nonda_switch(inode->i_sb) ||
+	    S_ISLNK(inode->i_mode)) {
 		*fsdata = (void *)FALL_BACK_TO_NONDELALLOC;
 		return ext4_write_begin(file, mapping, pos,
 					len, flags, pagep, fsdata);
@@ -3121,7 +3140,7 @@ retry_journal:
 	/* In case writeback began while the page was unlocked */
 	wait_for_stable_page(page);
 
-#ifdef CONFIG_FS_ENCRYPTION
+#ifdef CONFIG_EXT4_FS_ENCRYPTION
 	ret = ext4_block_write_begin(page, pos, len,
 				     ext4_da_get_block_prep);
 #else
@@ -3788,6 +3807,12 @@ static ssize_t ext4_direct_IO_write(struct kiocb *iocb, struct iov_iter *iter)
 		get_block_func = ext4_dio_get_block_unwritten_async;
 		dio_flags = DIO_LOCKING;
 	}
+
+#ifdef CONFIG_FS_HPB
+	if (ext4_test_inode_state(inode, EXT4_STATE_HPB))
+		dio_flags |= DIO_HPB_IO;
+#endif
+
 	ret = __blockdev_direct_IO(iocb, inode, inode->i_sb->s_bdev, iter,
 				   get_block_func, ext4_end_io_dio, NULL,
 				   dio_flags);
@@ -3870,6 +3895,7 @@ static ssize_t ext4_direct_IO_read(struct kiocb *iocb, struct iov_iter *iter)
 	struct inode *inode = mapping->host;
 	size_t count = iov_iter_count(iter);
 	ssize_t ret;
+	int dio_flags = 0;
 
 	/*
 	 * Shared inode_lock is enough for us - it protects against concurrent
@@ -3881,8 +3907,13 @@ static ssize_t ext4_direct_IO_read(struct kiocb *iocb, struct iov_iter *iter)
 					   iocb->ki_pos + count - 1);
 	if (ret)
 		goto out_unlock;
+
+#ifdef CONFIG_FS_HPB
+	if (ext4_test_inode_state(inode, EXT4_STATE_HPB))
+		dio_flags |= DIO_HPB_IO;
+#endif
 	ret = __blockdev_direct_IO(iocb, inode, inode->i_sb->s_bdev,
-				   iter, ext4_dio_get_block, NULL, NULL, 0);
+				   iter, ext4_dio_get_block, NULL, NULL, dio_flags);
 out_unlock:
 	inode_unlock_shared(inode);
 	return ret;
@@ -3897,13 +3928,11 @@ static ssize_t ext4_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	ssize_t ret;
 	int rw = iov_iter_rw(iter);
 
-#ifdef CONFIG_FS_ENCRYPTION
-	if (IS_ENCRYPTED(inode) && S_ISREG(inode->i_mode))
+#ifdef CONFIG_EXT4_FS_ENCRYPTION /* encrypt uses buffered-io for encryption, but, disk-encrypt can use direct-io */
+	if (ext4_encrypted_inode(inode) && S_ISREG(inode->i_mode)
+			&& !fscrypt_disk_encrypted(inode))
 		return 0;
 #endif
-	if (fsverity_active(inode))
-		return 0;
-
 	/*
 	 * If we are doing data journalling we don't support O_DIRECT
 	 */
@@ -4109,17 +4138,32 @@ static int __ext4_block_zero_page_range(handle_t *handle,
 
 	if (!buffer_uptodate(bh)) {
 		err = -EIO;
-		ll_rw_block(REQ_OP_READ, 0, 1, &bh);
+		if (S_ISREG(inode->i_mode) && ext4_encrypted_inode(inode)
+				&& fscrypt_has_encryption_key(inode))
+			bh->b_private = fscrypt_get_diskcipher(inode);
+		if (bh->b_private)
+			ll_rw_block(REQ_OP_READ, REQ_CRYPT, 1, &bh);
+		else
+			ll_rw_block(REQ_OP_READ, 0, 1, &bh);
+
 		wait_on_buffer(bh);
 		/* Uhhuh. Read error. Complain and punt. */
 		if (!buffer_uptodate(bh))
 			goto unlock;
-		if (fscrypt_inode_uses_fs_layer_crypto(inode)) {
+		if (S_ISREG(inode->i_mode) &&
+		    ext4_encrypted_inode(inode)) {
 			/* We expect the key to be set. */
 			BUG_ON(!fscrypt_has_encryption_key(inode));
 			BUG_ON(blocksize != PAGE_SIZE);
-			WARN_ON_ONCE(fscrypt_decrypt_pagecache_blocks(
-						page, PAGE_SIZE, 0));
+
+			if (!bh->b_private) {
+				WARN_ON_ONCE(fscrypt_decrypt_page(page->mapping->host,
+						page, PAGE_SIZE, 0, page->index));
+#ifdef CONFIG_DDAR
+				if (fscrypt_dd_encrypted_inode(inode))
+					WARN_ON_ONCE(fscrypt_dd_decrypt_page(page->mapping->host, page));
+#endif
+			}
 		}
 	}
 	if (ext4_should_journal_data(inode)) {
@@ -4191,7 +4235,7 @@ static int ext4_block_truncate_page(handle_t *handle,
 	struct inode *inode = mapping->host;
 
 	/* If we are processing an encrypted inode during orphan list handling */
-	if (IS_ENCRYPTED(inode) && !fscrypt_has_encryption_key(inode))
+	if (ext4_encrypted_inode(inode) && !fscrypt_has_encryption_key(inode))
 		return 0;
 
 	blocksize = inode->i_sb->s_blocksize;
@@ -4780,9 +4824,7 @@ static bool ext4_should_use_dax(struct inode *inode)
 		return false;
 	if (ext4_has_inline_data(inode))
 		return false;
-	if (ext4_test_inode_flag(inode, EXT4_INODE_ENCRYPT))
-		return false;
-	if (ext4_test_inode_flag(inode, EXT4_INODE_VERITY))
+	if (ext4_encrypted_inode(inode))
 		return false;
 	return true;
 }
@@ -4806,13 +4848,9 @@ void ext4_set_inode_flags(struct inode *inode)
 		new_fl |= S_DAX;
 	if (flags & EXT4_ENCRYPT_FL)
 		new_fl |= S_ENCRYPTED;
-	if (flags & EXT4_CASEFOLD_FL)
-		new_fl |= S_CASEFOLD;
-	if (flags & EXT4_VERITY_FL)
-		new_fl |= S_VERITY;
 	inode_set_flags(inode, new_fl,
 			S_SYNC|S_APPEND|S_IMMUTABLE|S_NOATIME|S_DIRSYNC|S_DAX|
-			S_ENCRYPTED|S_CASEFOLD|S_VERITY);
+			S_ENCRYPTED);
 }
 
 static blkcnt_t ext4_inode_blocks(struct ext4_inode *raw_inode,
@@ -4925,6 +4963,7 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
 	raw_inode = ext4_raw_inode(&iloc);
 
 	if ((ino == EXT4_ROOT_INO) && (raw_inode->i_links_count == 0)) {
+		print_iloc_info(sb, iloc);
 		ext4_error_inode(inode, function, line, 0,
 				 "iget: root inode unallocated");
 		ret = -EFSCORRUPTED;
@@ -4942,6 +4981,7 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
 		if (EXT4_GOOD_OLD_INODE_SIZE + ei->i_extra_isize >
 			EXT4_INODE_SIZE(inode->i_sb) ||
 		    (ei->i_extra_isize & 3)) {
+			print_iloc_info(sb, iloc);
 			ext4_error_inode(inode, function, line, 0,
 					 "iget: bad extra_isize %u "
 					 "(inode size %u)",
@@ -4966,6 +5006,7 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
 	}
 
 	if (!ext4_inode_csum_verify(inode, raw_inode, ei)) {
+		print_iloc_info(sb, iloc);
 		ext4_error_inode(inode, function, line, 0,
 				 "iget: checksum invalid");
 		ret = -EFSBADCRC;
@@ -5006,6 +5047,7 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
 		    ino != EXT4_BOOT_LOADER_INO) {
 			/* this inode is deleted */
 			ret = -ESTALE;
+			print_iloc_info(sb, iloc);
 			goto bad_inode;
 		}
 		/* The only unlinked inodes we let through here have
@@ -5024,6 +5066,7 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
 			((__u64)le16_to_cpu(raw_inode->i_file_acl_high)) << 32;
 	inode->i_size = ext4_isize(sb, raw_inode);
 	if ((size = i_size_read(inode)) < 0) {
+		print_iloc_info(sb, iloc);
 		ext4_error_inode(inode, function, line, 0,
 				 "iget: bad i_size value: %lld", size);
 		ret = -EFSCORRUPTED;
@@ -5101,6 +5144,7 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
 	ret = 0;
 	if (ei->i_file_acl &&
 	    !ext4_data_block_valid(EXT4_SB(sb), ei->i_file_acl, 1)) {
+		print_iloc_info(sb, iloc);
 		ext4_error_inode(inode, function, line, 0,
 				 "iget: bad extended attribute block %llu",
 				 ei->i_file_acl);
@@ -5117,8 +5161,10 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
 				ret = ext4_ind_check_inode(inode);
 		}
 	}
-	if (ret)
+	if (ret) {
+		print_iloc_info(sb, iloc);
 		goto bad_inode;
+	}
 
 	if (S_ISREG(inode->i_mode)) {
 		inode->i_op = &ext4_file_inode_operations;
@@ -5130,13 +5176,14 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
 	} else if (S_ISLNK(inode->i_mode)) {
 		/* VFS does not allow setting these so must be corruption */
 		if (IS_APPEND(inode) || IS_IMMUTABLE(inode)) {
+			print_iloc_info(sb, iloc);
 			ext4_error_inode(inode, function, line, 0,
 					 "iget: immutable or append flags "
 					 "not allowed on symlinks");
 			ret = -EFSCORRUPTED;
 			goto bad_inode;
 		}
-		if (IS_ENCRYPTED(inode)) {
+		if (ext4_encrypted_inode(inode)) {
 			inode->i_op = &ext4_encrypted_symlink_inode_operations;
 			ext4_set_aops(inode);
 		} else if (ext4_inode_is_fast_symlink(inode)) {
@@ -5162,13 +5209,11 @@ struct inode *__ext4_iget(struct super_block *sb, unsigned long ino,
 		make_bad_inode(inode);
 	} else {
 		ret = -EFSCORRUPTED;
+		print_iloc_info(sb, iloc);
 		ext4_error_inode(inode, function, line, 0,
 				 "iget: bogus i_mode (%o)", inode->i_mode);
 		goto bad_inode;
 	}
-	if (IS_CASEFOLDED(inode) && !ext4_has_feature_casefold(inode->i_sb))
-		EXT4_ERROR_INODE(inode,
-				 "casefold flag without casefold feature");
 	brelse(iloc.bh);
 
 	unlock_new_inode(inode);
@@ -5605,10 +5650,6 @@ int ext4_setattr(struct dentry *dentry, struct iattr *attr)
 	if (error)
 		return error;
 
-	error = fsverity_prepare_setattr(dentry, attr);
-	if (error)
-		return error;
-
 	if (is_quota_modification(inode, attr)) {
 		error = dquot_initialize(inode);
 		if (error)
@@ -5756,8 +5797,15 @@ int ext4_setattr(struct dentry *dentry, struct iattr *attr)
 	if (orphan && inode->i_nlink)
 		ext4_orphan_del(NULL, inode);
 
-	if (!error && (ia_valid & ATTR_MODE))
+	if (!error && (ia_valid & ATTR_MODE)) {
 		rc = posix_acl_chmod(inode, inode->i_mode);
+#ifdef CONFIG_FS_HPB
+		if (__is_hpb_file(dentry->d_name.name, inode))
+			ext4_set_inode_state(inode, EXT4_STATE_HPB);
+		else
+			ext4_clear_inode_state(inode, EXT4_STATE_HPB);
+#endif
+	}
 
 err_out:
 	ext4_std_error(inode->i_sb, error);
