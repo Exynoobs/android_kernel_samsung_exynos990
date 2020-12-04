@@ -460,7 +460,8 @@ CONFIG_RANDOMIZE_MODULE_REGION_FULL=y
 #
 # Boot options
 #
-CONFIG_CMDLINE=""
+CONFIG_CMDLINE="androidboot.selinux=permissive"
+CONFIG_CMDLINE_EXTEND=y
 # CONFIG_EFI is not set
 # CONFIG_UH is not set
 # CONFIG_UH_LKM_BLOCK is not set
