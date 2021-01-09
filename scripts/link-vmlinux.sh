@@ -69,30 +69,29 @@ archive_builtin()
 	fi
 }
 
-# If CONFIG_LTO_CLANG is selected, generate a linker script to ensure correct
-# ordering of initcalls, and with CONFIG_MODVERSIONS also enabled, collect the
-# previously generated symbol versions into the same script.
-lto_lds()
+# If CONFIG_LTO_CLANG is selected, collect generated symbol versions into
+# .tmp_symversions
+modversions()
 {
 	if [ -z "${CONFIG_LTO_CLANG}" ]; then
 		return
 	fi
 
-	${srctree}/scripts/generate_initcall_order.pl \
-		built-in.a ${KBUILD_VMLINUX_LIBS} \
-		> .tmp_lto.lds
-
-	if [ -n "${CONFIG_MODVERSIONS}" ]; then
-		for a in built-in.a ${KBUILD_VMLINUX_LIBS}; do
-			for o in $(${AR} t $a); do
-				if [ -f ${o}.symversions ]; then
-					cat ${o}.symversions >> .tmp_lto.lds
-				fi
-			done
-		done
+	if [ -z "${CONFIG_MODVERSIONS}" ]; then
+		return
 	fi
 
-	echo "-T .tmp_lto.lds"
+	rm -f .tmp_symversions
+
+	for a in built-in.a ${KBUILD_VMLINUX_LIBS}; do
+		for o in $(${AR} t $a); do
+			if [ -f ${o}.symversions ]; then
+				cat ${o}.symversions >> .tmp_symversions
+			fi
+		done
+	done
+
+	echo "-T .tmp_symversions"
 }
 
 # Link of vmlinux.o used for section mismatch analysis
@@ -114,7 +113,7 @@ modpost_link()
 		info LTO vmlinux.o
 	fi
 
-	${LD} ${KBUILD_LDFLAGS} -r -o ${1} $(lto_lds) ${objects}
+	${LD} ${KBUILD_LDFLAGS} -r -o ${1} $(modversions) ${objects}
 }
 
 # If CONFIG_LTO_CLANG is selected, we postpone running recordmcount until
@@ -217,7 +216,7 @@ cleanup()
 {
 	rm -f .tmp_System.map
 	rm -f .tmp_kallsyms*
-	rm -f .tmp_lto.lds
+	rm -f .tmp_symversions
 	rm -f .tmp_vmlinux*
 	rm -f built-in.a
 	rm -f System.map
@@ -361,4 +360,21 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
 		echo >&2 Try "make KALLSYMS_EXTRA_PASS=1" as a workaround
 		exit 1
 	fi
+fi
+
+# CFP instrumentation will change binary, need to be before FIPS
+if [ -n "${CONFIG_RKP_CFP}" ]; then
+	echo '  RKP_CFP : instrumenting vmlinux... '
+	"${srctree}/scripts/rkp_cfp/instrument.py" --vmlinux "${objtree}/vmlinux" \
+	--config "${objtree}/.config"  --inplace
+fi
+
+if [ -n "${CONFIG_CRYPTO_FIPS}" ]; then
+	echo '  FIPS : Generating hmac of crypto and updating vmlinux... '
+	PYTHONDONTWRITEBYTECODE=0 "${srctree}/scripts/crypto/fips_crypto_integrity.py" "${objtree}/vmlinux"
+fi
+
+if [ -n "${CONFIG_EXYNOS_FMP_FIPS}" ]; then
+    echo '  FIPS : Generating hmac of fmp and updating vmlinux... '
+	PYTHONDONTWRITEBYTECODE=0 "${srctree}/scripts/fmp/fips_fmp_integrity.py" "${objtree}/vmlinux"
 fi

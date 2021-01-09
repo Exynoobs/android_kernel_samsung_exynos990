@@ -384,6 +384,17 @@ static struct kmem_cache *create_cache(const char *name,
 	s->useroffset = useroffset;
 	s->usersize = usersize;
 
+#ifdef CONFIG_KDP_CRED
+	if (!strncmp(name, CRED_JAR_RO, strlen(CRED_JAR_RO)))
+		s->cred_type = KDP_CRED_JAR;
+	else if (!strncmp(name, TSEC_JAR, strlen(TSEC_JAR)))
+		s->cred_type = KDP_TSEC_JAR;
+	else if (!strncmp(name, VFSMNT_JAR, strlen(VFSMNT_JAR)))
+		s->cred_type = KDP_VFSMNT_JAR;
+	else
+		s->cred_type = 0;
+#endif
+
 	err = init_memcg_params(s, memcg, root_cache);
 	if (err)
 		goto out_free_cache;
@@ -954,6 +965,9 @@ void __init create_boot_cache(struct kmem_cache *s, const char *name,
 		panic("Creation of kmalloc slab %s size=%u failed. Reason %d\n",
 					name, size, err);
 
+#ifdef CONFIG_KDP_CRED
+	s->cred_type = 0;
+#endif
 	s->refcount = -1;	/* Exempt from merging for now */
 }
 
@@ -1182,8 +1196,8 @@ void *kmalloc_order(size_t size, gfp_t flags, unsigned int order)
 	flags |= __GFP_COMP;
 	page = alloc_pages(flags, order);
 	ret = page ? page_address(page) : NULL;
-	ret = kasan_kmalloc_large(ret, size, flags);
 	kmemleak_alloc(ret, size, 1, flags);
+	kasan_kmalloc_large(ret, size, flags);
 	return ret;
 }
 EXPORT_SYMBOL(kmalloc_order);
@@ -1461,7 +1475,7 @@ static __always_inline void *__do_krealloc(const void *p, size_t new_size,
 		ks = ksize(p);
 
 	if (ks >= new_size) {
-		p = kasan_krealloc((void *)p, new_size, flags);
+		kasan_krealloc((void *)p, new_size, flags);
 		return (void *)p;
 	}
 
@@ -1513,7 +1527,7 @@ void *krealloc(const void *p, size_t new_size, gfp_t flags)
 	}
 
 	ret = __do_krealloc(p, new_size, flags);
-	if (ret && kasan_reset_tag(p) != kasan_reset_tag(ret))
+	if (ret && p != ret)
 		kfree(p);
 
 	return ret;

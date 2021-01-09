@@ -880,6 +880,9 @@
 
 	dis_ucode_ldr	[X86] Disable the microcode loader.
 
+	dm=		[DM] Allows early creation of a device-mapper device.
+			See Documentation/device-mapper/boot.txt.
+
 	dma_debug=off	If the kernel is compiled with DMA_API_DEBUG support,
 			this option disables the debugging code at boot.
 
@@ -1630,15 +1633,6 @@
 			modules and initcalls.
 
 	initrd=		[BOOT] Specify the location of the initial ramdisk
-
-	init_on_alloc=	[MM] Fill newly allocated pages and heap objects with
-			zeroes.
-			Format: 0 | 1
-			Default set by CONFIG_INIT_ON_ALLOC_DEFAULT_ON.
-
-	init_on_free=	[MM] Fill freed pages and heap objects with zeroes.
-			Format: 0 | 1
-			Default set by CONFIG_INIT_ON_FREE_DEFAULT_ON.
 
 	init_pkru=	[x86] Specify the default memory protection keys rights
 			register contents for all processes.  0x55555554 by
@@ -3110,12 +3104,6 @@
 			'node', 'default' can be specified
 			This can be set from sysctl after boot.
 			See Documentation/sysctl/vm.txt for details.
-
-	of_devlink	[OF, KNL] Create device links between consumer and
-			supplier devices by scanning the devictree to infer the
-			consumer/supplier relationships.  A consumer device
-			will not be probed until all the supplier devices have
-			probed successfully.
 
 	ohci1394_dma=early	[HW] enable debugging via the ohci1394 driver.
 			See Documentation/debugging-via-ohci1394.txt for more

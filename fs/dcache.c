@@ -18,7 +18,6 @@
 #include <linux/string.h>
 #include <linux/mm.h>
 #include <linux/fs.h>
-#include <linux/fscrypt.h>
 #include <linux/fsnotify.h>
 #include <linux/slab.h>
 #include <linux/init.h>
@@ -33,6 +32,9 @@
 #include <linux/list_lru.h>
 #include "internal.h"
 #include "mount.h"
+#ifdef CONFIG_KDP_NS
+u8 ns_prot = 0;
+#endif
 
 /*
  * Usage:
@@ -1476,6 +1478,7 @@ void shrink_dcache_parent(struct dentry *parent)
 {
 	for (;;) {
 		struct select_data data;
+		bool need_sched = true;
 
 		INIT_LIST_HEAD(&data.dispose);
 		data.start = parent;
@@ -1487,10 +1490,18 @@ void shrink_dcache_parent(struct dentry *parent)
 			shrink_dentry_list(&data.dispose);
 			continue;
 		}
+		
+		if (cond_resched())
+			need_sched = false;
 
-		cond_resched();
 		if (!data.found)
 			break;
+		
+		if (unlikely(need_sched)) {
+			long prev_state = current->state;
+			if (!schedule_timeout_uninterruptible(1))
+				set_current_state(prev_state);
+		}
 	}
 }
 EXPORT_SYMBOL(shrink_dcache_parent);
@@ -2786,7 +2797,6 @@ static void __d_move(struct dentry *dentry, struct dentry *target,
 	list_move(&dentry->d_child, &dentry->d_parent->d_subdirs);
 	__d_rehash(dentry);
 	fsnotify_update_flags(dentry);
-	fscrypt_handle_d_move(dentry);
 
 	write_seqcount_end(&target->d_seq);
 	write_seqcount_end(&dentry->d_seq);
@@ -3117,11 +3127,13 @@ void __init vfs_caches_init_early(void)
 {
 	int i;
 
+	set_memsize_kernel_type(MEMSIZE_KERNEL_VFSHASH);
 	for (i = 0; i < ARRAY_SIZE(in_lookup_hashtable); i++)
 		INIT_HLIST_BL_HEAD(&in_lookup_hashtable[i]);
 
 	dcache_init_early();
 	inode_init_early();
+	set_memsize_kernel_type(MEMSIZE_KERNEL_OTHERS);
 }
 
 void __init vfs_caches_init(void)
@@ -3136,4 +3148,7 @@ void __init vfs_caches_init(void)
 	mnt_init();
 	bdev_cache_init();
 	chrdev_init();
+#ifdef CONFIG_KDP_NS
+	ns_prot = 1;
+#endif
 }
