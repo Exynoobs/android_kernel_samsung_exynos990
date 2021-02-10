@@ -199,7 +199,8 @@ static DECLARE_DEFERRABLE_WORK(abox_log_flush_all_work,
 static void abox_log_flush_all_work_func(struct work_struct *work)
 {
 	abox_log_flush_all(NULL);
-	schedule_delayed_work(&abox_log_flush_all_work, msecs_to_jiffies(1000));
+	queue_delayed_work(system_unbound_wq, &abox_log_flush_all_work,
+			msecs_to_jiffies(1000));
 	set_bit(0, &abox_log_flush_all_work_rearm_self);
 }
 
@@ -207,7 +208,8 @@ void abox_log_schedule_flush_all(struct device *dev)
 {
 	if (test_and_clear_bit(0, &abox_log_flush_all_work_rearm_self))
 		cancel_delayed_work(&abox_log_flush_all_work);
-	schedule_delayed_work(&abox_log_flush_all_work, msecs_to_jiffies(100));
+	queue_delayed_work(system_unbound_wq, &abox_log_flush_all_work,
+			msecs_to_jiffies(100));
 }
 EXPORT_SYMBOL(abox_log_schedule_flush_all);
 

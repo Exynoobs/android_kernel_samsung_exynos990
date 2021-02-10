@@ -1378,14 +1378,15 @@ void is_hardware_frame_start(struct is_hw_ip *hw_ip, u32 instance)
 	struct is_group *head;
 	struct is_hw_ip *hw_ip_ldr;
 	u32 shot_timeout = 0;
-	u32 queued_count;
-	int ret;
+	u32 config_count;
 	u32 hw_fcount;
 
 	FIMC_BUG_VOID(!hw_ip);
 	head = GET_HEAD_GROUP_IN_DEVICE(IS_DEVICE_ISCHAIN,
 			hw_ip->group[instance]);
 	FIMC_BUG_VOID(!head);
+
+	hw_fcount = atomic_read(&hw_ip->fcount);
 
 	/*
 	 * If there are hw_ips having framestart processing
@@ -1399,7 +1400,32 @@ void is_hardware_frame_start(struct is_hw_ip *hw_ip, u32 instance)
 	framemgr = hw_ip->framemgr;
 
 	framemgr_e_barrier(framemgr, 0);
-	frame = get_frame(framemgr, FS_HW_CONFIGURE);
+	frame = peek_frame(framemgr, FS_HW_CONFIGURE);
+
+	if (test_bit(IS_GROUP_OTF_INPUT, &head->state)) {
+		while (frame) {
+			config_count = framemgr->queued_count[FS_HW_CONFIGURE];
+			if (config_count > 1) {
+				framemgr->proc_warn_cnt++;
+				if (framemgr->proc_warn_cnt > 5) {
+					msinfo_hw("[F%d][HWF%d][CF%d]flush configured frame\n",
+						instance, hw_ip, frame->fcount, hw_fcount,
+						config_count);
+
+					frame_manager_print_info_queues(framemgr);
+
+					trans_frame(framemgr, frame, FS_HW_WAIT_DONE);
+					frame = peek_frame(framemgr, FS_HW_CONFIGURE);
+				} else {
+					break;
+				}
+			} else {
+				framemgr->proc_warn_cnt = 0;
+				break;
+			}
+		}
+	}
+
 	if (IS_ERR_OR_NULL(frame)) {
 		check_frame = find_frame(framemgr, FS_HW_WAIT_DONE,
 			frame_fcount, (void *)(ulong)atomic_read(&hw_ip->fcount));
@@ -1440,57 +1466,11 @@ void is_hardware_frame_start(struct is_hw_ip *hw_ip, u32 instance)
 		}
 	}
 
-	put_frame(framemgr, frame, FS_HW_WAIT_DONE);
+	trans_frame(framemgr, frame, FS_HW_WAIT_DONE);
 	framemgr_x_barrier(framemgr, 0);
 
 	clear_bit(HW_CONFIG, &hw_ip->state);
 	atomic_set(&hw_ip->status.Vvalid, V_VALID);
-
-	/* Flush FS_HW_WAIT_DONE */
-	hw_fcount = atomic_read(&hw_ip->fcount);
-	if (test_bit(IS_GROUP_OTF_INPUT, &head->state)) {
-		framemgr_e_barrier(framemgr, 0);
-		frame = peek_frame(framemgr, FS_HW_WAIT_DONE);
-		while (frame) {
-			queued_count = framemgr->queued_count[FS_HW_WAIT_DONE];
-
-			if (frame->type == SHOT_TYPE_LATE) {
-				msinfo_hw("[F%d][HWF%d][WD%d] flush LATE_SHOT\n",
-					instance, hw_ip, frame->fcount, hw_fcount, queued_count);
-
-				framemgr_x_barrier(framemgr, 0);
-				ret = is_hardware_frame_ndone(hw_ip, frame, frame->instance,
-					IS_SHOT_LATE_FRAME);
-				if (ret) {
-					mserr_hw("hardware_frame_ndone fail", frame->instance, hw_ip);
-					return;
-				}
-			} else if ((queued_count > 2) && (frame->fcount < hw_fcount - 1)) {
-				/*
-				 * A end interrupt can be later than start interrupt next frame.
-				 * Therefore, at least 2 frames can be in wait done state.
-				 */
-				msinfo_hw("[F%d][HWF%d][WD%d] flush lost frame end\n",
-					instance, hw_ip, frame->fcount, hw_fcount, queued_count);
-				frame_manager_print_info_queues(framemgr);
-
-				framemgr_x_barrier(framemgr, 0);
-				ret = is_hardware_frame_ndone(hw_ip, frame, frame->instance,
-					IS_SHOT_SUCCESS);
-				if (ret) {
-					mserr_hw("hardware_frame_ndone fail", frame->instance, hw_ip);
-					return;
-				}
-			} else {
-				break;
-			}
-
-			framemgr_e_barrier(framemgr, 0);
-			frame = peek_frame(framemgr, FS_HW_WAIT_DONE);
-		}
-		framemgr_x_barrier(framemgr, 0);
-
-	}
 }
 
 int is_hardware_sensor_start(struct is_hardware *hardware, u32 instance,

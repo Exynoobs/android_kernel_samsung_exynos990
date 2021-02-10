@@ -366,9 +366,16 @@ void max77705_pd_retry_work(struct work_struct *work)
 {
 	struct max77705_usbc_platform_data *pusbpd = pd_noti.pusbpd;
 	usbc_cmd_data value;
+	u8 status[5];
+	u8 vbvolt;
 	u8 num;
 
-	if (pd_noti.event == PDIC_NOTIFY_EVENT_DETACH)
+	max77705_bulk_read(pusbpd->muic, MAX77705_USBC_REG_USBC_STATUS1, 5, status);
+	vbvolt = (status[2] & BC_STATUS_VBUSDET_MASK) >> BC_STATUS_VBUSDET_SHIFT;
+	if (vbvolt != 0x01)
+		pr_info("%s: Error, VBUS isn't above 5V(0x%02X)\n", __func__, vbvolt);
+
+	if (pd_noti.event == PDIC_NOTIFY_EVENT_DETACH || vbvolt != 0x01)
 		return;
 
 	init_usbc_cmd_data(&value);

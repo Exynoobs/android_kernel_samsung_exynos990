@@ -516,6 +516,8 @@ struct decon_readback {
 	struct dma_fence *fence;
 	struct work_struct work;
 	struct workqueue_struct *wq;
+	u32 map_cnt;
+	u32 unmap_cnt;
 };
 
 struct vrr_config_data {
@@ -2024,6 +2026,7 @@ void dpu_unify_rect(struct decon_rect *r1, struct decon_rect *r2,
 		struct decon_rect *dst);
 void dpu_save_fence_info(int fd, struct dma_fence *fence,
 		struct dpu_fence_info *fence_info);
+void dpu_show_readback_buf_info(struct decon_device *decon, u32 diff_cnt);
 void dpu_show_dma_attach_info(char *fn, struct decon_device *decon, u32 sel);
 
 void decon_dump(struct decon_device *decon, bool panel_dump);

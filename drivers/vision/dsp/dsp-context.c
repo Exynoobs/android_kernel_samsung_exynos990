@@ -66,6 +66,12 @@ static int dsp_context_boot_direct(struct dsp_context *dctx,
 	dsp_dbg("boot direct start\n");
 	core = dctx->core;
 
+	if (!args->bin_list_size) {
+		ret = -EINVAL;
+		dsp_err("size of bin_list is invalid\n");
+		goto p_err_info;
+	}
+
 	bin_list = kmalloc(args->bin_list_size, GFP_KERNEL);
 	if (!bin_list) {
 		ret = -ENOMEM;
@@ -171,6 +177,12 @@ static int dsp_context_load_graph(struct dsp_context *dctx,
 
 	sys = &dctx->core->dspdev->system;
 	version = args->version;
+
+	if (!args->kernel_size) {
+		ret = -EINVAL;
+		dsp_err("size for kernel_name is invalid\n");
+		goto p_err_name;
+	}
 
 	kernel_name = kmalloc(args->kernel_size, GFP_KERNEL);
 	if (!kernel_name) {
@@ -310,12 +322,24 @@ static int dsp_context_load_graph_direct(struct dsp_context *dctx,
 	sys = &dctx->core->dspdev->system;
 	version = args->version;
 
+	if (!args->kernel_size) {
+		ret = -EINVAL;
+		dsp_err("size for kernel_name is invalid\n");
+		goto p_err_name;
+	}
+
 	kernel_name = kmalloc(args->kernel_size, GFP_KERNEL);
 	if (!kernel_name) {
 		ret = -ENOMEM;
 		dsp_err("Failed to allocate kernel_name(%u)\n",
 				args->kernel_size);
 		goto p_err_name;
+	}
+
+	if (!args->bin_list_size) {
+		ret = -EINVAL;
+		dsp_err("size of bin_list is invalid\n");
+		goto p_err_bin;
 	}
 
 	bin_list = kmalloc(args->bin_list_size, GFP_KERNEL);
@@ -609,7 +633,7 @@ static int __dsp_context_get_control(struct dsp_context *dctx,
 		break;
 	case DSP_CONTROL_REQUEST_MO:
 	case DSP_CONTROL_RELEASE_MO:
-		if (control->size > SCENARIO_NAME_MAX) {
+		if (!control->size || control->size >= SCENARIO_NAME_MAX) {
 			ret = -EINVAL;
 			dsp_err("user cmd size is invalid(%u/%u)\n",
 					control->size, SCENARIO_NAME_MAX);
@@ -624,6 +648,7 @@ static int __dsp_context_get_control(struct dsp_context *dctx,
 			goto p_err;
 		}
 
+		cmd->mo.scenario_name[control->size] = '\0';
 		break;
 	default:
 		ret = -EINVAL;

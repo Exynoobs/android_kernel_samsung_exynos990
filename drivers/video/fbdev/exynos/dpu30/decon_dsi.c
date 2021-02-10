@@ -149,6 +149,7 @@ static irqreturn_t decon_irq_handler(int irq, void *dev_data)
 #if defined(DPU_DUMP_BUFFER_IRQ)
 		dpu_dump_afbc_info();
 #endif
+		dpu_show_readback_buf_info(decon, 5);
 		BUG();
 	}
 

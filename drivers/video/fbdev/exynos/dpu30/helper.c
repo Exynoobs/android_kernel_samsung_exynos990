@@ -474,6 +474,15 @@ static int dpu_dump_buffer_data(struct dpp_device *dpp)
 }
 #endif
 
+void dpu_show_readback_buf_info(struct decon_device *decon, u32 diff_cnt)
+{
+#if defined(CONFIG_EXYNOS_SUPPORT_READBACK)
+	if ((decon->readback.map_cnt - decon->readback.unmap_cnt) >= diff_cnt)
+		decon_info("%s: map_cnt=%d unmap_cnt=%d\n", __func__,
+			decon->readback.map_cnt, decon->readback.unmap_cnt);
+#endif
+}
+
 /*
  * dpu_show_dma_attach_info
  * @purpose : To check the memory leak in relation to buffers used by the DPU
@@ -520,8 +529,10 @@ void dpu_show_dma_attach_info(char *fn, struct decon_device *decon, u32 sel)
 		allow_cnt = MAX_DMA_ATTACH_CNT * (frame_cnt + 1);
 		cnt_diff = cnt->buf_attach_cnt -
 				cnt->buf_detach_cnt;
-		if (cnt_diff > allow_cnt)
+		if (cnt_diff > allow_cnt) {
+			dpu_show_readback_buf_info(decon, 1);
 			BUG();
+		}
 	}
 }
 

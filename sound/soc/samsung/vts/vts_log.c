@@ -143,8 +143,10 @@ static ssize_t vts_log_file_read(
 	} while (size == 0);
 
 	dev_dbg(info->dev, "start=%zd, end=%zd size=%zd\n", vts_log_file_index, end, size);
-	if (copy_to_user(buf, kernel_buffer->buffer + vts_log_file_index, size))
+	if (copy_to_user(buf, kernel_buffer->buffer + vts_log_file_index, size)) {
+		mutex_unlock(&info->lock);
 		return -EFAULT;
+	}
 
 	vts_log_file_index += size;
 	if (vts_log_file_index >= VTS_LOG_BUFFER_SIZE)

@@ -40,6 +40,8 @@
 #include "mali_kbase_dma_fence.h"
 #include <mali_kbase_cs_experimental.h>
 #include <mali_kbase_caps.h>
+#include <uapi/linux/sched/types.h>
+#include <linux/sched.h>
 
 /* MALI_SEC_INTEGRATION */
 #include <linux/smc.h>
@@ -1215,6 +1217,17 @@ static bool jd_submit_atom(struct kbase_context *const kctx,
 		if (!kbase_js_is_atom_valid(kctx->kbdev, katom)) {
 			katom->event_code = BASE_JD_EVENT_JOB_INVALID;
 			return jd_done_nolock(katom, NULL);
+		} else if (kctx->need_rt && !kctx->already_rt) {
+			struct sched_param param = { .sched_priority = 1 };
+			int ret = 0;
+
+			ret = sched_setscheduler_nocheck(current, SCHED_FIFO, &param);
+			if (ret) {
+				pr_warn("%s: failed to set SCHED_CLASS cmar-backend\n", __func__);
+			} else {
+				kctx->already_rt = true;
+				pr_warn("%s: SCHED_CLASS cmar-backend\n", __func__);
+			}
 		}
 	} else {
 		/* Soft-job */

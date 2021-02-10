@@ -1648,6 +1648,10 @@ struct kbase_context {
 	/* MALI_SEC_INTEGRATION */
 	bool need_to_force_schedule_out;
 
+	/* MALI_SEC_INTEGRATION */
+	bool need_rt;
+	bool already_rt;
+
 	atomic_t atoms_pulled;
 	atomic_t atoms_pulled_slot[BASE_JM_MAX_NR_SLOTS];
 	int atoms_pulled_slot_pri[BASE_JM_MAX_NR_SLOTS][

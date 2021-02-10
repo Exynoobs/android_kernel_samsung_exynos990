@@ -135,6 +135,8 @@ struct is_framemgr {
 	struct votf_action	slave;	/* RDMA */
 
 	u32			batch_num;
+
+	u32			proc_warn_cnt;
 };
 
 static const char * const hw_frame_state_name[NR_FRAME_STATE] = {

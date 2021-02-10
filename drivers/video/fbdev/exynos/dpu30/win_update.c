@@ -19,6 +19,9 @@
 #include "dqe.h"
 #endif
 
+
+#define SKIP_WINDOW_UPDATE 1
+
 static void win_update_adjust_region(struct decon_device *decon,
 		struct decon_win_config *win_config,
 		struct decon_reg_data *regs)
@@ -33,6 +36,9 @@ static void win_update_adjust_region(struct decon_device *decon,
 	regs->need_update = false;
 	DPU_FULL_RECT(&regs->up_region, decon->lcd_info);
 
+#ifdef SKIP_WINDOW_UPDATE
+	return;
+#endif
 	if (!decon->win_up.enabled)
 		return;
 
@@ -462,10 +468,16 @@ void dpu_prepare_win_update_config(struct decon_device *decon,
 
 	/* If LCD resolution is changed, window update is ignored */
 	if (dpu_need_mres_config(decon, win_config, regs)) {
+#if IS_ENABLED(CONFIG_EXYNOS_WINDOW_UPDATE)
+#ifndef SKIP_WINDOW_UPDATE
 		regs->up_region.left = 0;
 		regs->up_region.top = 0;
 		regs->up_region.right = regs->lcd_width - 1;
 		regs->up_region.bottom = regs->lcd_height - 1;
+		decon_info("[PARTIAL]: mres: %d, %d, %d, %d\n", regs->up_region.left, regs->up_region.top,
+			regs->up_region.right, regs->up_region.bottom);
+#endif
+#endif
 		return;
 	}
 
@@ -479,11 +491,17 @@ void dpu_prepare_win_update_config(struct decon_device *decon,
 	 * If update region is changed, need_update flag is set.
 	 * That means hw configuration is needed
 	 */
-	if (is_decon_rect_differ(&decon->win_up.prev_up_region, &regs->up_region))
+#if IS_ENABLED(CONFIG_EXYNOS_WINDOW_UPDATE)
+#ifndef SKIP_WINDOW_UPDATE 
+	if (is_decon_rect_differ(&decon->win_up.prev_up_region, &regs->up_region)) {
 		regs->need_update = true;
+	}
 	else
 		regs->need_update = false;
-
+#else
+	regs->need_update = false;
+#endif
+#endif
 	/*
 	 * If partial update region is requested, source and destination
 	 * coordinates are needed to change if overlapped with update region.

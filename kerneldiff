@@ -1,0 +1,110 @@
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   arch/arm64/boot/dts/Makefile
+	modified:   arch/arm64/boot/dts/samsung/exynos990-x1s_eur_open_05.dts
+	modified:   arch/arm64/boot/dts/samsung/exynos990-x1s_eur_open_16.dts
+	modified:   arch/arm64/boot/dts/samsung/exynos990-x1s_eur_open_17.dts
+	modified:   arch/arm64/boot/dts/samsung/exynos990-x1s_eur_open_19.dts
+	modified:   arch/arm64/boot/dts/samsung/exynos990-x1s_eur_open_21.dts
+	modified:   arch/arm64/boot/dts/samsung/exynos990-y2s_eur_open_04.dts
+	modified:   arch/arm64/configs/exynos9830-x1sxxx_defconfig
+	modified:   drivers/battery_v2/include/charger/mfc_charger.h
+	modified:   drivers/battery_v2/include/charger/mfc_s2miw04_charger.h
+	modified:   drivers/battery_v2/include/sec_battery.h
+	modified:   drivers/battery_v2/include/sec_charging_common.h
+	modified:   drivers/battery_v2/max77705_charger.c
+	modified:   drivers/battery_v2/mfc_charger.c
+	modified:   drivers/battery_v2/mfc_s2miw04_charger.c
+	modified:   drivers/battery_v2/sec_battery.c
+	modified:   drivers/battery_v2/sec_battery_dt.c
+	modified:   drivers/battery_v2/sec_battery_sysfs.c
+	modified:   drivers/battery_v2/sec_step_charging.c
+	modified:   drivers/gpu/arm/v_r25p1/mali_kbase_core_linux.c
+	modified:   drivers/gpu/arm/v_r25p1/mali_kbase_defs.h
+	modified:   drivers/gpu/arm/v_r25p1/mali_kbase_ioctl.h
+	modified:   drivers/gpu/arm/v_r25p1/mali_kbase_jd.c
+	modified:   drivers/gpu/arm/v_r25p1/mali_kbase_uku.h
+	modified:   drivers/gpu/arm/v_r25p1/platform/exynos/gpu_integration_callbacks.c
+	modified:   drivers/input/touchscreen/sec_ts/y761_sub/sec_ts_ioctl.c
+	modified:   drivers/input/touchscreen/sec_ts/y79a/sec_ts_ioctl.c
+	modified:   drivers/input/touchscreen/sec_ts/y79a_c/sec_ts_ioctl.c
+	modified:   drivers/input/touchscreen/sec_ts_univ/sec_ts_ioctl.c
+	modified:   drivers/media/platform/exynos/camera/hardware/is-hw-control.c
+	modified:   drivers/media/platform/exynos/camera/interface/is-interface-ddk.c
+	modified:   drivers/media/platform/exynos/camera/is-device-csi_v4.c
+	modified:   drivers/media/platform/exynos/camera/is-framemgr.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/Kconfig
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/Makefile
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/bcmevent.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/bcmutils.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_cfg80211.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_common.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_custom_exynos.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_custom_msm.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_custom_sec.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_debug.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_linux.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_linux_exportfs.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_linux_pktdump.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_linux_priv.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_msgbuf.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_pcie.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_pcie.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_pcie_linux.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_pktlog.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_pktlog.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/dhd_rtt.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/include/bcmdefs.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/include/bcmerror.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/include/bcmiov.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/include/bcmutils.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/include/epivers.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/include/linux_pkt.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/include/linuxver.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/include/wlfc_proto.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/linux_pkt.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/siutils.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/siutils_priv.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wb_regon_coordinator.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_android.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfg80211.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfg80211.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfgp2p.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfgp2p.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfgscan.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfgscan.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfgvendor.c
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfgvendor.h
+	modified:   drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfgvif.c
+	modified:   drivers/soc/samsung/exynos-bcm_dbg.c
+	modified:   drivers/usb/dwc3/gadget.c
+	modified:   drivers/usb/typec/maxim/max77705/max77705_pd.c
+	modified:   drivers/video/fbdev/exynos/dpu30/decon.h
+	modified:   drivers/video/fbdev/exynos/dpu30/decon_core.c
+	modified:   drivers/video/fbdev/exynos/dpu30/decon_dsi.c
+	modified:   drivers/video/fbdev/exynos/dpu30/displayport_edid.c
+	modified:   drivers/video/fbdev/exynos/dpu30/helper.c
+	modified:   drivers/video/fbdev/exynos/dpu30/win_update.c
+	modified:   drivers/vision/dsp/dl/dsp-elf-loader.c
+	modified:   drivers/vision/dsp/dsp-context.c
+	modified:   fs/binfmt_elf.c
+	modified:   fs/eventpoll.c
+	modified:   include/soc/samsung/exynos-bcm_dbg.h
+	modified:   mm/Makefile
+	modified:   mm/page_alloc.c
+	modified:   mm/vmscan.c
+	modified:   sound/soc/samsung/abox/abox_log.c
+	modified:   sound/soc/samsung/abox/abox_rdma.c
+	modified:   sound/soc/samsung/abox/abox_wdma.c
+	modified:   sound/soc/samsung/vts/vts_log.c
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	drivers/net/wireless/broadcom/bcmdhd_101_16/wl_cfgdbg.c
+	kerneldiff
+	mm/panic_handler.c
+
+no changes added to commit (use "git add" and/or "git commit -a")

@@ -192,8 +192,8 @@ static int abox_wdma_hw_params(struct snd_pcm_substream *substream,
 		runtime->dma_bytes = params_buffer_bytes(params);
 	} else {
 		dev_dbg(dev, "backend dai mode\n");
-		data->backend = true;
 	}
+	data->backend = abox_wdma_backend(substream);
 
 	pcmtask_msg->channel_id = id;
 	msg.ipcid = IPC_PCMCAPTURE;
@@ -262,7 +262,6 @@ static int abox_wdma_hw_free(struct snd_pcm_substream *substream)
 
 	if (cpu_dai->id < ABOX_WDMA0_BE)
 		snd_pcm_set_runtime_buffer(substream, NULL);
-	data->backend = false;
 
 	return 0;
 }

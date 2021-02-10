@@ -687,6 +687,18 @@ struct kbase_ioctl_slsi_negative_boost_flags {
 
 #define KBASE_IOCTL_SLSI_NEGATIVE_BOOST_FLAGS \
 	_IOW(KBASE_IOCTL_TYPE, 44, struct kbase_ioctl_slsi_negative_boost_flags)
+
+/*
+ * struct kbase_ioctl_slsi_singlebuffer_boost_flags - Update the status of singlebuffer boost flag
+ * @flags: Flags for future expansion
+ */
+struct kbase_ioctl_slsi_singlebuffer_boost_flags {
+	__u32 flags;
+};
+
+#define KBASE_IOCTL_SLSI_SINGLEBUFFER_BOOST_FLAGS \
+	_IOW(KBASE_IOCTL_TYPE, 45, struct kbase_ioctl_slsi_singlebuffer_boost_flags)
+
 /**
  * union kbase_ioctl_get_cpu_gpu_timeinfo - Request zero or more types of
  *                                          cpu/gpu time (counter values)

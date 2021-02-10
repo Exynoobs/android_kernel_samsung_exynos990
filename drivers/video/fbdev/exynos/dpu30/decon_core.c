@@ -202,6 +202,8 @@ void decon_dump(struct decon_device *decon, bool panel_dump)
 				ktime_to_ns(decon->d.buf_cnt_bak.timestamp));
 		dpu_show_dma_attach_info("decon_dump", decon, 1);
 	}
+	dpu_show_readback_buf_info(decon, 0);
+
 	__decon_dump(decon->id, decon->res.regs, base_regs,
 			decon->lcd_info->dsc.en);
 
@@ -1656,6 +1658,8 @@ static void print_dma_leak_info(struct decon_device *decon)
 	int printcnt;
 	struct dma_leak_info *leak_info;
 
+	dpu_show_readback_buf_info(decon, 0);
+
 	decon_info("[DECON:INFO]: leak count : %d\n", decon->leak_cnt);
 
 	pos = (decon->leak_cnt % LEAK_INFO_ARRAY_CNT);
@@ -1733,6 +1737,8 @@ static unsigned int decon_map_ion_handle(struct decon_device *decon,
 		}
 	}
 #endif
+
+	dpu_show_readback_buf_info(decon, 5);
 
 	dma->attachment = dma_buf_attach(dma->dma_buf, dev);
 	if (IS_ERR_OR_NULL(dma->attachment)) {
@@ -2892,6 +2898,8 @@ void decon_readback_wq(struct work_struct *work)
 	decon_signal_fence(decon, decon->readback.fence);
 	dma_fence_put(decon->readback.fence);
 
+	decon->readback.unmap_cnt++;
+
 	decon_dbg("%s -\n", __func__);
 }
 
@@ -3568,6 +3576,9 @@ static int decon_prepare_win_config(struct decon_device *decon,
 		regs->protection[decon->dt.wb_win] = config->protection;
 		ret = decon_import_buffer(decon, decon->dt.wb_win,
 				config, regs);
+
+		if (!ret && regs->readback.request)
+			decon->readback.map_cnt++;
 
 		if (regs->readback.request && (config->rel_fence >= 0)) {
 			/* fence is managed by buffer not plane */

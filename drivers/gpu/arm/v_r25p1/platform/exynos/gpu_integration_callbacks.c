@@ -105,6 +105,9 @@ void gpu_create_context(void *ctx)
 	kctx->destroying_context = false;
 
 	kctx->need_to_force_schedule_out = false;
+
+	kctx->need_rt = false;
+	kctx->already_rt = false;
 #endif
 }
 
@@ -342,6 +345,17 @@ int gpu_vendor_dispatch(struct kbase_context *kctx, u32 flags)
 			//dev_err(kctx->kbdev->dev, "KBASE_FUNC_UNSET_NEGATIVE_BOOST_LOCK\n"); //Debug
 			mutex_unlock(&platform->gpu_negative_boost_lock);
 #endif
+			break;
+		}
+		case KBASE_FUNC_SET_SINGLEBUFFER_BOOST:
+		{
+			kctx->need_rt = true;
+			break;
+		}
+		case KBASE_FUNC_UNSET_SINGLEBUFFER_BOOST:
+		{
+			kctx->need_rt = false;
+			kctx->already_rt = false;
 			break;
 		}
 #endif /* MALI_SEC_PROBE_TEST */

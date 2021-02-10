@@ -235,6 +235,7 @@ struct exynos_bcm_calc {
 	struct delayed_work work;
 	bool enable;
 	unsigned int perf_define_event;
+	unsigned int usage_cnt;
 };
 
 #ifdef CONFIG_EXYNOS_BCM_DBG_GNR

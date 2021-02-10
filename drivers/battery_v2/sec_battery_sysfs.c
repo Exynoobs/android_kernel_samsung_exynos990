@@ -2145,19 +2145,6 @@ ssize_t sec_bat_store_attrs(
 				queue_delayed_work(battery->monitor_wqueue,
 					&battery->monitor_work, 0);
 			}
-#if defined(CONFIG_DISABLE_MFC_IC)
-			if (lpcharge) {
-				if (battery->lcd_status &&
-					(battery->mfc_unknown_swelling || battery->mfc_unknown_fullcharged)) {
-					sec_bat_set_mfc_on(battery, true);
-					battery->mfc_work_check = false;
-					queue_delayed_work(battery->monitor_wqueue,
-						&battery->mfc_work, msecs_to_jiffies(2000));
-				} else {
-					cancel_delayed_work(&battery->mfc_work);
-				}
-			}
-#endif
 #endif
 			ret = count;
 		}
