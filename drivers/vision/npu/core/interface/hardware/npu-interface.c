@@ -337,12 +337,14 @@ err_exit:
 int npu_interface_close(struct npu_system *system)
 {
 	int wptr, rptr;
-	struct device *dev = &system->pdev->dev;
+	struct device *dev;
 
 	if (!system) {
 		npu_err("fail in %s\n", __func__);
 		return -EINVAL;
 	}
+
+	dev = &system->pdev->dev;
 
 	queue_work(wq, &work_report);
 	if ((wq) && (interface.mbox_hdr)) {
@@ -484,7 +486,7 @@ int fr_req_manager(int msgid, struct npu_frame *frame)
 		cmd.c.process.oid = frame->uid;
 		cmd.c.process.fid = frame->frame_id;
 		cmd.c.process.priority = frame->priority;
-		cmd.c.process.profiler_ctrl = frame->output->timestamp[5].tv_sec;
+		cmd.c.process.profiler_ctrl = (u32)frame->output->timestamp[5].tv_sec;
 		cmd.length = frame->mbox_process_dat.address_vector_cnt;
 		cmd.payload = frame->mbox_process_dat.address_vector_start_daddr;
 		msg.command = COMMAND_PROCESS;

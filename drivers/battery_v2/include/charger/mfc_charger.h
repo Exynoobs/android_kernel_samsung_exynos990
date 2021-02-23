@@ -1216,5 +1216,9 @@ struct mfc_charger_data {
 	u8 ping_freq;
 	bool req_afc_tx;
 #endif
+
+	struct mutex fw_lock;
+	unsigned long fw_size;
+	u8 *fw_img;
 };
 #endif /* __WIRELESS_CHARGER_MFC_H */

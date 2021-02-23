@@ -2211,7 +2211,7 @@ int hdd_update_tgt_cfg(hdd_handle_t hdd_handle, struct wma_tgt_cfg *cfg)
 {
 	int ret;
 	struct hdd_context *hdd_ctx = hdd_handle_to_context(hdd_handle);
-	uint8_t temp_band_cap, band_capability;
+	uint32_t temp_band_cap, band_capability;
 	struct cds_config_info *cds_cfg = cds_get_ini_config();
 	uint8_t antenna_mode;
 	uint8_t sub_20_chan_width;
@@ -2305,15 +2305,14 @@ int hdd_update_tgt_cfg(hdd_handle_t hdd_handle, struct wma_tgt_cfg *cfg)
 	/*
 	 * now overwrite the target band capability with INI
 	 * setting if INI setting is a subset
+	 * merge the target band capability with INI setting if the merge has
+	 * at least 1 band enabled
 	 */
-	if ((band_capability == BAND_ALL) &&
-	    (temp_band_cap != BAND_ALL))
-		band_capability = temp_band_cap;
-	else if ((band_capability != BAND_ALL) &&
-		 (temp_band_cap != BAND_ALL) &&
-		 (band_capability != temp_band_cap)) {
+	temp_band_cap &= band_capability;
+	if (!temp_band_cap)
 		hdd_warn("ini BandCapability not supported by the target");
-	}
+	else
+		band_capability = temp_band_cap;
 
 	status = ucfg_mlme_set_band_capability(hdd_ctx->psoc, band_capability);
 	if (QDF_IS_STATUS_ERROR(status)) {
@@ -3935,7 +3934,6 @@ int hdd_wlan_start_modules(struct hdd_context *hdd_ctx, bool reinit)
 	hdd_sysfs_update_driver_status(DRIVER_MODULES_ENABLED);
 #endif
 	hdd_nofl_debug("Wlan transitioned (now ENABLED)");
-	cds_set_recovery_in_progress(false);
 
 	hdd_exit();
 
@@ -6392,7 +6390,7 @@ struct hdd_adapter *hdd_open_adapter(struct hdd_context *hdd_ctx, uint8_t sessio
 		return NULL;
 	}
 
-	adapter->upgrade_udp_qos_threshold = QCA_WLAN_AC_BE;
+	adapter->upgrade_udp_qos_threshold = QCA_WLAN_AC_BK;
 	qdf_spinlock_create(&adapter->vdev_lock);
 	qdf_atomic_init(&hdd_ctx->num_latency_critical_clients);
 
@@ -11675,6 +11673,7 @@ static int hdd_update_cds_config(struct hdd_context *hdd_ctx)
 	struct cds_config_info *cds_cfg;
 	int value;
 	uint8_t band_capability;
+	uint32_t band_bitmap;
 	uint8_t ito_repeat_count;
 	bool crash_inject;
 	bool self_recovery;
@@ -11743,10 +11742,10 @@ static int hdd_update_cds_config(struct hdd_context *hdd_ctx)
 
 	cds_cfg->ito_repeat_count = ito_repeat_count;
 
-	status = ucfg_mlme_get_band_capability(hdd_ctx->psoc, &band_capability);
+	status = ucfg_mlme_get_band_capability(hdd_ctx->psoc, &band_bitmap);
 	if (QDF_IS_STATUS_ERROR(status))
 		goto exit;
-
+	band_capability = wlan_reg_band_bitmap_to_band_info(band_bitmap);
 	cds_cfg->bandcapability = band_capability;
 	cds_cfg->num_vdevs = hdd_ctx->config->num_vdevs;
 	cds_cfg->enable_tx_compl_tsf64 =
@@ -11772,10 +11771,11 @@ static int hdd_update_user_config(struct hdd_context *hdd_ctx)
 {
 	struct wlan_objmgr_psoc_user_config *user_config;
 	uint8_t band_capability;
+	uint32_t band_bitmap;
 	QDF_STATUS status;
 	bool value = false;
 
-	status = ucfg_mlme_get_band_capability(hdd_ctx->psoc, &band_capability);
+	status = ucfg_mlme_get_band_capability(hdd_ctx->psoc, &band_bitmap);
 	if (QDF_IS_STATUS_ERROR(status))
 		return -EIO;
 
@@ -11794,6 +11794,7 @@ static int hdd_update_user_config(struct hdd_context *hdd_ctx)
 	if (!QDF_IS_STATUS_SUCCESS(status))
 		hdd_err("Invalid 11h_enable flag");
 	user_config->is_11h_support_enabled = value;
+	band_capability = wlan_reg_band_bitmap_to_band_info(band_bitmap);
 	user_config->band_capability = band_capability;
 	wlan_objmgr_psoc_set_user_config(hdd_ctx->psoc, user_config);
 

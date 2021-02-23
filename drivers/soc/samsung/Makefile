@@ -100,7 +100,6 @@ obj-$(CONFIG_EXYNOS_CPU_PERF)	+= exynos_cpu_perf/
 
 # Exynos S2MPU
 obj-$(CONFIG_EXYNOS_S2MPU)	+= exynos-s2mpu.o
-obj-$(CONFIG_EXYNOS_S2MPU)	+= exynos-harxlog.o
 
 # Exynos EL2
 obj-$(CONFIG_ARCH_EXYNOS)       += exynos-el2.o

@@ -264,35 +264,40 @@ void report_pressure_data(struct ssp_data *data, int sensor_type, struct sensor_
 void report_light_data(struct ssp_data *data,int sensor_type, struct sensor_value *lightdata)
 {
 	
-	if(!data->camera_lux_en && 
-			(lightdata->light_t.lux <= 100) && 
-			(data->brightness       >= 65 ))
+	if (!data->camera_lux_en &&
+			(lightdata->light_t.lux <= 100) &&
+			(data->brightness >= 65))
 	{
-
-		if(data->light_log_cnt == 0)
+		if (data->light_log_cnt == 0)
 		{
 			pr_info("[SSP]: Light AB Sensor : report first lux form light sensor");
 			report_camera_lux_data(data, lightdata->light_t.lux);
 		}
-		
-		data->camera_lux_en    = true;
+		data->camera_lux_en	= true;
 		lightdata->light_t.lux = CAMERA_LUX_ENABLE;
-	}
-	else if(data->camera_lux_en &&
-		((lightdata->light_t.lux >= 150) || 
-		(data->brightness        <  65 )))
-	{
-	    pr_info("[SSP]: Light AB Sensor : report cam disable");
-		data->camera_lux_en    = false;
-		data->pre_camera_lux   = CAM_LUX_INITIAL;
+	} else if (data->camera_lux_en &&
+		((lightdata->light_t.lux >= 150) ||
+		(data->brightness	< 65)))	{
+		pr_info("[SSP]: Light AB Sensor : report cam disable");
+		data->camera_lux_en	= false;
 		lightdata->light_t.lux = CAMERA_LUX_DISABLE;
-	}
-	else if(data->camera_lux_en)
-	{	
+		if (data->brightness < 65)
+			pr_info("[SSP]: Light AB Sensor at low brightness: report cam disable");
+		else
+			data->pre_camera_lux = CAM_LUX_INITIAL;
+	} else if (data->camera_lux_en == false && data->pre_camera_lux != CAM_LUX_INITIAL) {
+		pr_info("[SSP]: when first lux after sABC precamlux : %d lightlux : %d", 
+		data->pre_camera_lux, lightdata->light_t.lux);
+		if (data->pre_camera_lux >= (50 + lightdata->light_t.lux) ||
+			lightdata->light_t.lux >= (data->pre_camera_lux + 50)) {
+			lightdata->light_t.lux = (lightdata->light_t.lux + data->pre_camera_lux)/2;
+			pr_info("[SSP] sABC_average_value %d", lightdata->light_t.lux);
+		}
+		data->pre_camera_lux = CAM_LUX_INITIAL;
+	} else if (data->camera_lux_en)
 		return;
-	}
-	report_iio_data(data, sensor_type, lightdata);
 
+	report_iio_data(data, sensor_type, lightdata);
 	if (data->light_log_cnt < 3) {
 		ssp_dbg("[SSP] #>UL lux=%u cct=%d r=%d g=%d b=%d c=%d atime=%d again=%d",
 			data->buf[sensor_type].light_t.lux, data->buf[sensor_type].light_t.cct,
@@ -320,13 +325,12 @@ void report_camera_lux_data(struct ssp_data *data, int cur_lux)
 {
 	int report_lux;
 	pr_info("[SSP]: %s: prelux :%d  curlux :%d", __func__,data->pre_camera_lux,cur_lux);
-	if(data->pre_camera_lux == CAM_LUX_INITIAL) {
+	if (data->pre_camera_lux == CAM_LUX_INITIAL) 
 		report_lux = cur_lux;
-	} 
-	else {
+	else 
 		report_lux = (cur_lux + data->pre_camera_lux)/2;
-	}
-	data->pre_camera_lux = cur_lux;
+	if (cur_lux > -1) 
+		data->pre_camera_lux = cur_lux;
 	data->buf[LIGHT_SENSOR].light_t.lux = report_lux;
 	ssp_push_iio_buffer(data->indio_dev[LIGHT_SENSOR], get_current_timestamp(),
 	                     (char *)&data->buf[LIGHT_SENSOR], sensors_info[LIGHT_SENSOR].report_data_len);

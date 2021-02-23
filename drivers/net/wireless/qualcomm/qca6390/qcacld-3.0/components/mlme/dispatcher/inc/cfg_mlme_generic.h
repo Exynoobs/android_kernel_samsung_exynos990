@@ -159,8 +159,8 @@
 #define CFG_BAND_CAPABILITY CFG_INI_UINT( \
 	"BandCapability", \
 	0, \
-	2, \
-	0, \
+	7, \
+	7, \
 	CFG_VALUE_OR_DEFAULT, \
 	"Band Capability")
 

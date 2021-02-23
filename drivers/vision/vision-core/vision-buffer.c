@@ -245,6 +245,7 @@ p_err:
 }
 #endif
 
+#ifndef CONFIG_ION_EXYNOS
 static int __vb_unmap_virtptr(struct vb_queue *q, struct vb_buffer *buffer)
 {
 	int ret = 0;
@@ -268,6 +269,7 @@ static int __vb_unmap_virtptr(struct vb_queue *q, struct vb_buffer *buffer)
 p_err:
 	return ret;
 }
+#endif
 
 #ifdef CONFIG_ION_EXYNOS
 static int __vb_map_dmabuf(
@@ -341,6 +343,7 @@ p_err:
 }
 #endif
 
+#ifndef CONFIG_ION_EXYNOS
 static int __vb_map_virtptr(
 	struct vb_queue *q, struct vb_buffer *buffer, u32 size)
 {
@@ -370,6 +373,7 @@ static int __vb_map_virtptr(
 p_err:
 	return ret;
 }
+#endif
 
 static int __vb_queue_alloc(struct vb_queue *q,
 	struct vs4l_container_list *c)
@@ -632,7 +636,7 @@ static int __vb_buf_prepare(struct vb_queue *q, struct vb_bundle *bundle)
 				}
 			}
 			break;
-#endif
+#else
 		case VS4L_MEMORY_VIRTPTR:
 			for (j = 0; j < k; ++j) {
 				buffer = &container->buffers[j];
@@ -652,6 +656,7 @@ static int __vb_buf_prepare(struct vb_queue *q, struct vb_bundle *bundle)
 				}
 			}
 			break;
+#endif
 		default:
 			vision_err("unsupported container memory type\n");
 			ret = -EINVAL;
@@ -718,7 +723,7 @@ static int __vb_buf_unprepare(struct vb_queue *q, struct vb_bundle *bundle)
 				}
 			}
 			break;
-#endif
+#else
 		case VS4L_MEMORY_VIRTPTR:
 			for (j = 0; j < k; ++j) {
 				buffer = &container->buffers[j];
@@ -730,6 +735,7 @@ static int __vb_buf_unprepare(struct vb_queue *q, struct vb_bundle *bundle)
 				}
 			}
 			break;
+#endif
 		default:
 			vision_err("unsupported container memory type\n");
 			ret = -EINVAL;

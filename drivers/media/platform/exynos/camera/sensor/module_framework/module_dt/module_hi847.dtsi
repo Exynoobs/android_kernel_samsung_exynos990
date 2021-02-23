@@ -112,7 +112,7 @@
 						15 { pname = "delay"; pin = <PIN_NONE 0 500>; };
 						20 { pname = "VDDIO_1.8V_CAM"; pin = <PIN_REGULATOR 1 0>; share = <SRT_ACQUIRE SHARED_PIN0 1>; };
 						30 { pname = "gpio_rcam3_vdd_ldo_en"; pin = <PIN_OUTPUT 1 0>; gpio = <&gpg1 2 0x1>; };
-						35 { pname = "delay"; pin = <PIN_NONE 0 300>; };
+						35 { pname = "delay"; pin = <PIN_NONE 0 500>; };
 						40 { pname = "gpio_rcam_af_ldo_en"; pin = <PIN_OUTPUT 1 1000>; gpio = <&gpp2 6 0x1>; share = <SRT_ACQUIRE SHARED_PIN1 1>; };
 						50 { pname = "VDD_VM_2.8V_OIS"; pin = <PIN_REGULATOR 1 100>; share = <SRT_ACQUIRE SHARED_PIN2 1>; };
 						60 { pname = "VDDD_1.8V_OIS"; pin = <PIN_REGULATOR 1 500>; share = <SRT_ACQUIRE SHARED_PIN3 1>; };

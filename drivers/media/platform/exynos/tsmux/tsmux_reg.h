@@ -59,7 +59,7 @@ void tsmux_set_dst_addr(struct tsmux_device *tsmux_dev,
 
 void tsmux_job_queue_pkt_ctrl(struct tsmux_device *tsmux_dev);
 
-void tsmux_reset_pkt_ctrl(struct tsmux_device *tsmux_dev);
+bool tsmux_reset_pkt_ctrl(struct tsmux_device *tsmux_dev);
 
 void tsmux_enable_int_job_done(struct tsmux_device *tsmux_dev);
 void tsmux_disable_int_job_done(struct tsmux_device *tsmux_dev);

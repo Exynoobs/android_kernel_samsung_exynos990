@@ -19,8 +19,8 @@ static int __dsp_ioctl_get_boot(struct dsp_ioc_boot *karg,
 	int ret;
 
 	dsp_enter();
-	ret = copy_from_user(karg, uarg, sizeof(*uarg));
-	if (ret) {
+	if (copy_from_user(karg, uarg, sizeof(*uarg))) {
+		ret = -EFAULT;
 		dsp_err("Failed to copy from user at boot(%d)\n", ret);
 		goto p_err;
 	}
@@ -52,8 +52,8 @@ static int __dsp_ioctl_get_load_graph(struct dsp_ioc_load_graph *karg,
 	int ret;
 
 	dsp_enter();
-	ret = copy_from_user(karg, uarg, sizeof(*uarg));
-	if (ret) {
+	if (copy_from_user(karg, uarg, sizeof(*uarg))) {
+		ret = -EFAULT;
 		dsp_err("Failed to copy from user at load(%d)\n", ret);
 		goto p_err;
 	}
@@ -85,8 +85,8 @@ static int __dsp_ioctl_get_unload_graph(struct dsp_ioc_unload_graph *karg,
 	int ret;
 
 	dsp_enter();
-	ret = copy_from_user(karg, uarg, sizeof(*uarg));
-	if (ret) {
+	if (copy_from_user(karg, uarg, sizeof(*uarg))) {
+		ret = -EFAULT;
 		dsp_err("Failed to copy from user at unload(%d)\n", ret);
 		goto p_err;
 	}
@@ -118,8 +118,8 @@ static int __dsp_ioctl_get_execute_msg(struct dsp_ioc_execute_msg *karg,
 	int ret;
 
 	dsp_enter();
-	ret = copy_from_user(karg, uarg, sizeof(*uarg));
-	if (ret) {
+	if (copy_from_user(karg, uarg, sizeof(*uarg))) {
+		ret = -EFAULT;
 		dsp_err("Failed to copy from user at execute(%d)\n", ret);
 		goto p_err;
 	}
@@ -151,8 +151,8 @@ static int __dsp_ioctl_get_control(struct dsp_ioc_control *karg,
 	int ret;
 
 	dsp_enter();
-	ret = copy_from_user(karg, uarg, sizeof(*uarg));
-	if (ret) {
+	if (copy_from_user(karg, uarg, sizeof(*uarg))) {
+		ret = -EFAULT;
 		dsp_err("Failed to copy from user at control(%d)\n", ret);
 		goto p_err;
 	}
@@ -174,74 +174,6 @@ static void __dsp_ioctl_put_control(struct dsp_ioc_control *karg,
 	ret = copy_to_user(uarg, karg, sizeof(*karg));
 	if (ret)
 		dsp_err("Failed to copy to  user at control(%d)\n", ret);
-
-	dsp_leave();
-}
-
-static int __dsp_ioctl_get_boot_direct(struct dsp_ioc_boot_direct *karg,
-		struct dsp_ioc_boot_direct __user *uarg)
-{
-	int ret;
-
-	dsp_enter();
-	ret = copy_from_user(karg, uarg, sizeof(*uarg));
-	if (ret) {
-		dsp_err("Failed to copy from user at boot(%d)\n", ret);
-		goto p_err;
-	}
-
-	memset(karg->timestamp, 0, sizeof(karg->timestamp));
-
-	dsp_leave();
-	return 0;
-p_err:
-	return ret;
-}
-
-static void __dsp_ioctl_put_boot_direct(struct dsp_ioc_boot_direct *karg,
-		struct dsp_ioc_boot_direct __user *uarg)
-{
-	int ret;
-
-	dsp_enter();
-	ret = copy_to_user(uarg, karg, sizeof(*karg));
-	if (ret)
-		dsp_err("Failed to copy to  user at boot(%d)\n", ret);
-
-	dsp_leave();
-}
-
-static int __dsp_ioctl_get_load_graph_direct(
-		struct dsp_ioc_load_graph_direct *karg,
-		struct dsp_ioc_load_graph_direct __user *uarg)
-{
-	int ret;
-
-	dsp_enter();
-	ret = copy_from_user(karg, uarg, sizeof(*uarg));
-	if (ret) {
-		dsp_err("Failed to copy from user at load(%d)\n", ret);
-		goto p_err;
-	}
-
-	memset(karg->timestamp, 0, sizeof(karg->timestamp));
-
-	dsp_leave();
-	return 0;
-p_err:
-	return ret;
-}
-
-static void __dsp_ioctl_put_load_graph_direct(
-		struct dsp_ioc_load_graph_direct *karg,
-		struct dsp_ioc_load_graph_direct __user *uarg)
-{
-	int ret;
-
-	dsp_enter();
-	ret = copy_to_user(uarg, karg, sizeof(*karg));
-	if (ret)
-		dsp_err("Failed to copy to  user at load(%d)\n", ret);
 
 	dsp_leave();
 }
@@ -299,23 +231,6 @@ long dsp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		ret = ops->control(dctx, &karg.control);
 		__dsp_ioctl_put_control(&karg.control, uarg);
-		break;
-	case DSP_IOC_BOOT_DIRECT:
-		ret = __dsp_ioctl_get_boot_direct(&karg.boot_direct, uarg);
-		if (ret)
-			goto p_err;
-
-		ret = ops->boot_direct(dctx, &karg.boot_direct);
-		__dsp_ioctl_put_boot_direct(&karg.boot_direct, uarg);
-		break;
-	case DSP_IOC_LOAD_GRAPH_DIRECT:
-		ret = __dsp_ioctl_get_load_graph_direct(&karg.load_direct,
-				uarg);
-		if (ret)
-			goto p_err;
-
-		ret = ops->load_graph_direct(dctx, &karg.load_direct);
-		__dsp_ioctl_put_load_graph_direct(&karg.load_direct, uarg);
 		break;
 	default:
 		ret = -EINVAL;

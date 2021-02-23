@@ -39,8 +39,6 @@
 #include <backend/gpu/mali_kbase_irq_internal.h>
 #include <backend/gpu/mali_kbase_jm_internal.h>
 
-#include <mali_kbase_dummy_job_wa.h>
-
 static void kbasep_try_reset_gpu_early_locked(struct kbase_device *kbdev);
 
 static u64 kbase_job_write_affinity(struct kbase_device *kbdev,
@@ -1201,14 +1199,6 @@ static void kbasep_reset_timeout_worker(struct work_struct *data)
 	kbase_ctx_sched_restore_all_as(kbdev);
 	spin_unlock_irqrestore(&kbdev->hwaccess_lock, flags);
 	mutex_unlock(&kbdev->mmu_hw_mutex);
-
-	if (kbdev->dummy_job_wa.flags &
-			KBASE_DUMMY_JOB_WA_FLAG_LOGICAL_SHADER_POWER) {
-		spin_lock_irqsave(&kbdev->hwaccess_lock, flags);
-		GPU_LOG(DVFS_DEBUG, LSI_WA_EXECUTE, kbdev->dummy_job_wa.flags, 0u, "before kbase_wa_execute in %s\n", __func__);
-		kbase_dummy_job_wa_execute(kbdev, kbdev->pm.debug_core_mask_all);
-		spin_unlock_irqrestore(&kbdev->hwaccess_lock, flags);
-	}
 
 	kbase_pm_enable_interrupts(kbdev);
 

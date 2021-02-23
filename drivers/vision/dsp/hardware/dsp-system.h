@@ -30,7 +30,7 @@ int dsp_system_resume(struct dsp_system *sys);
 int dsp_system_suspend(struct dsp_system *sys);
 
 int dsp_system_npu_start(struct dsp_system *sys, bool boot, dma_addr_t fw_iova);
-int dsp_system_start(struct dsp_system *sys, void *bin_list);
+int dsp_system_start(struct dsp_system *sys);
 int dsp_system_stop(struct dsp_system *sys);
 
 int dsp_system_open(struct dsp_system *sys);

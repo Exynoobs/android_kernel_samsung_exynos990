@@ -514,6 +514,10 @@ static struct notifier_block dmabuf_oom_notifier = {
 	.notifier_call = dmabuf_oom_notifier_fn,
 };
 
+static struct notifier_block dmabuf_panic_notifier = {
+	.notifier_call = dmabuf_oom_notifier_fn,
+};
+
 static int __init dmabuf_trace_create(void)
 {
 	debug_root = debugfs_create_dir("footprint", dma_buf_debugfs_dir);
@@ -542,6 +546,7 @@ static int __init dmabuf_trace_create(void)
 	INIT_LIST_HEAD(&head_task.ref_list);
 
 	register_oom_debug_notifier(&dmabuf_oom_notifier);
+	atomic_notifier_chain_register(&panic_notifier_list, &dmabuf_panic_notifier);
 
 	pr_info("Initialized dma-buf trace successfully.\n");
 

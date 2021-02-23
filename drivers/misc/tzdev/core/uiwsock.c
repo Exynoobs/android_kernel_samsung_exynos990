@@ -13,7 +13,6 @@
 
 #include <linux/atomic.h>
 #include <linux/anon_inodes.h>
-#include <linux/err.h>
 #include <linux/module.h>
 #include <linux/poll.h>
 
@@ -29,10 +28,6 @@
 	|| ((x) == -ERESTARTNOHAND)		\
 	|| ((x) == -ERESTARTNOINTR)		\
 	|| ((x) == -ERESTART_RESTARTBLOCK))
-
-#define IS_EAGAIN(x)				\
-	(((x) == -EAGAIN)			\
-	|| ((x) == -EWOULDBLOCK))
 
 static atomic_t tz_uiwsock_init_done = ATOMIC_INIT(0);
 static const struct file_operations tz_uiwsock_fops;
@@ -136,9 +131,6 @@ static long tz_uiwsock_accept(struct file *filp, unsigned long arg)
 	new_sd = tz_iwsock_accept(sd);
 	if (IS_EINTR(PTR_ERR(new_sd))) {
 		log_debug(tzdev_uiwsock, "Wait interrupted, filp=%pK, ret=%ld\n", filp, PTR_ERR(new_sd));
-		return PTR_ERR(new_sd);
-	} else if (IS_EAGAIN(PTR_ERR(new_sd))){
-		log_debug(tzdev_uiwsock, "Operation would block, filp=%pK, ret=%ld\n", filp, PTR_ERR(new_sd));
 		return PTR_ERR(new_sd);
 	} else if (IS_ERR(new_sd)) {
 		log_error(tzdev_uiwsock, "Failed to accept, ret=%ld\n", PTR_ERR(new_sd));

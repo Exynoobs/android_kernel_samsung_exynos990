@@ -2492,6 +2492,9 @@ int sensor_2l3_cis_long_term_exposure(struct v4l2_subdev *subdev)
 	struct is_long_term_expo_mode *lte_mode;
 	unsigned char cit_lshift_val = 0;
 	unsigned char shift_count = 0;
+#ifdef USE_SENSOR_LONG_EXPOSURE_SHOT
+	u32 lte_expousre = 0;
+#endif
 
 	WARN_ON(!subdev);
 
@@ -2502,6 +2505,16 @@ int sensor_2l3_cis_long_term_exposure(struct v4l2_subdev *subdev)
 	/* LTE mode or normal mode set */
 	if (lte_mode->sen_strm_off_on_enable) {
 		if (lte_mode->expo[0] > 125000) {
+#ifdef USE_SENSOR_LONG_EXPOSURE_SHOT
+			lte_expousre = lte_mode->expo[0];
+			cit_lshift_val = (unsigned char)(lte_mode->expo[0] / 125000);
+			while (cit_lshift_val) {
+				cit_lshift_val = cit_lshift_val / 2;
+				lte_expousre = lte_expousre / 2;
+				shift_count++;
+			}
+			lte_mode->expo[0] = lte_expousre;
+#else
 			cit_lshift_val = (unsigned char)(lte_mode->expo[0] / 125000);
 			while (cit_lshift_val) {
 				cit_lshift_val = cit_lshift_val / 2;
@@ -2509,6 +2522,7 @@ int sensor_2l3_cis_long_term_exposure(struct v4l2_subdev *subdev)
 					shift_count++;
 			}
 			lte_mode->expo[0] = 125000;
+#endif
 			ret |= is_sensor_write16(cis->client, 0xFCFC, 0x4000);
 			ret |= is_sensor_write8(cis->client, 0x0701, shift_count);
 			ret |= is_sensor_write8(cis->client, 0x0702, shift_count);
@@ -2522,7 +2536,8 @@ int sensor_2l3_cis_long_term_exposure(struct v4l2_subdev *subdev)
 
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 
-	info("%s enable(%d)", __func__, lte_mode->sen_strm_off_on_enable);
+	info("%s enable(%d) shift_count(%d) exp(%d)",
+		__func__, lte_mode->sen_strm_off_on_enable, shift_count, lte_mode->expo[0]);
 
 	if (ret < 0) {
 		pr_err("ERR[%s]: LTE register setting fail\n", __func__);

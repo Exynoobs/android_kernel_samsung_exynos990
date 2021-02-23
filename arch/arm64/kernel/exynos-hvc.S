@@ -19,26 +19,9 @@
  *			uint64_t arg4)
  */
 
-/*
+
 ENTRY(exynos_hvc)
 	dsb	sy
 	hvc	#0
-	ret
-ENDPROC(exynos_hvc)
-*/
-.global exynos_harxlog_flush
-ENTRY(exynos_early_hvc)
-	dsb	sy
-	hvc	#0
-	ret
-ENDPROC(exynos_early_hvc)
-ENTRY(exynos_hvc)
-	stp	x29, x30, [sp,#-16]!
-	dsb 	sy
-	hvc 	#0
-	stp 	x0, x1, [sp,#-16]!
-	bl  	exynos_harxlog_flush
-	ldp 	x0, x1, [sp],#16
-	ldp 	x29, x30, [sp],#16
 	ret
 ENDPROC(exynos_hvc)

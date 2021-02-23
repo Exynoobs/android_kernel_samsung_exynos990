@@ -904,14 +904,17 @@ void tsmux_job_queue_pkt_ctrl(struct tsmux_device *tsmux_dev)
 	print_tsmux(TSMUX_SFR, "%s--\n", __func__);
 }
 
-void tsmux_reset_pkt_ctrl(struct tsmux_device *tsmux_dev)
+bool tsmux_reset_pkt_ctrl(struct tsmux_device *tsmux_dev)
 {
 	u32 pkt_ctrl_reg;
+	u32 cmd_ctrl_reg;
+	int total_udelay = 0;
+	bool ret = false;
 
 	print_tsmux(TSMUX_SFR, "%s++\n", __func__);
 
 	if (tsmux_dev == NULL)
-		return;
+		return ret;
 
 	pkt_ctrl_reg = TSMUX_READL(TSMUX_PKT_CTRL_ADDR);
 	print_tsmux(TSMUX_SFR, "read pkt_ctrl_reg 0x%x\n", pkt_ctrl_reg);
@@ -923,11 +926,23 @@ void tsmux_reset_pkt_ctrl(struct tsmux_device *tsmux_dev)
 	print_tsmux(TSMUX_SFR, "write pkt_ctrl_reg 0x%x\n", pkt_ctrl_reg);
 
 	/* default is CONSECUTIVE mode */
-	TSMUX_WRITEL(TSMUX_CMD_CTRL_RESET_VALUE, TSMUX_CMD_CTRL_ADDR);
-	print_tsmux(TSMUX_SFR, "write cmd_ctrl_reg 0x%x\n",
-		TSMUX_CMD_CTRL_RESET_VALUE);
+	while(total_udelay < 1000) {
+		TSMUX_WRITEL(TSMUX_CMD_CTRL_RESET_VALUE, TSMUX_CMD_CTRL_ADDR);
+		cmd_ctrl_reg = TSMUX_READL(TSMUX_CMD_CTRL_ADDR);
+		if (cmd_ctrl_reg == TSMUX_CMD_CTRL_RESET_VALUE) {
+			ret = true;
+			break;
+		}
+		udelay(100);
+		total_udelay += 100;
+		print_tsmux(TSMUX_ERR, "delay to set cmd_ctrl_reg, total_udelay: %d\n",
+				total_udelay);
+	}
+	print_tsmux(TSMUX_SFR, "write cmd_ctrl_reg 0x%x\n", cmd_ctrl_reg);
 
 	print_tsmux(TSMUX_SFR, "%s--\n", __func__);
+
+	return ret;
 }
 
 void tsmux_enable_int_job_done(struct tsmux_device *tsmux_dev)

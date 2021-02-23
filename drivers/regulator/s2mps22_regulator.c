@@ -874,6 +874,15 @@ static void s2mps22_pmic_shutdown(struct platform_device *pdev)
 		s2mps22_wtsr_disable(s2mps22);
 
 	s2mps22_pmic_WA(s2mps22);
+
+	if (system_state == SYSTEM_POWER_OFF) {
+		u8 reg;
+
+		s2mps22_update_reg(s2mps22->i2c, S2MPS22_REG_BUCK2S_CTRL, 0xC0, 0xC0);
+		udelay(96);
+		s2mps22_read_reg(s2mps22->i2c, S2MPS22_REG_BUCK2S_CTRL, &reg);
+		pr_info("@@@@@%s: B2S_CTRL: 0x%x\n", __func__, reg);
+	}
 }
 
 #if defined(CONFIG_PM)

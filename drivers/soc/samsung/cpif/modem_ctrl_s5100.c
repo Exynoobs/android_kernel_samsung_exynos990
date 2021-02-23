@@ -463,6 +463,8 @@ static int power_on_cp(struct modem_ctl *mc)
 		wake_lock(&mc->mc_wake_lock);
 
 	mc->phone_state = STATE_OFFLINE;
+	modem_notify_event(MODEM_EVENT_OFFLINE, mc);
+
 	pcie_clean_dislink(mc);
 
 	mc->pcie_registered = false;
@@ -500,6 +502,8 @@ static int power_off_cp(struct modem_ctl *mc)
 		goto exit;
 
 	mc->phone_state = STATE_OFFLINE;
+	modem_notify_event(MODEM_EVENT_OFFLINE, mc);
+
 	mc->bootd->modem_state_changed(mc->iod, STATE_OFFLINE);
 	mc->iod->modem_state_changed(mc->iod, STATE_OFFLINE);
 
@@ -524,6 +528,8 @@ static int power_shutdown_cp(struct modem_ctl *mc)
 
 	if (mc->phone_state == STATE_OFFLINE)
 		goto exit;
+
+	modem_notify_event(MODEM_EVENT_OFFLINE, mc);
 
 	mif_disable_irq(&mc->s5100_irq_phone_active);
 	mif_disable_irq(&mc->s5100_irq_ap_wakeup);

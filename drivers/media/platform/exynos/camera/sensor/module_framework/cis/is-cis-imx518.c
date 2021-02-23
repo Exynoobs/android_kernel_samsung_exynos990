@@ -346,6 +346,15 @@ p_err:
 	return ret;
 }
 
+int sensor_imx518_cis_deinit(struct v4l2_subdev *subdev)
+{
+	int ret = 0;
+#ifdef USE_CAMERA_REAR_TOF_TX_FREQ_VARIATION
+	sensor_imx518_rear_tx_freq = REAR_TX_DEFAULT_FREQ;
+#endif
+	return ret;
+}
+
 int sensor_imx518_cis_log_status(struct v4l2_subdev *subdev)
 {
 	int ret = 0;
@@ -1304,6 +1313,7 @@ int sensor_imx518_cis_get_tx_freq(struct v4l2_subdev *subdev, u32 *value)
 
 static struct is_cis_ops cis_ops_imx518 = {
 	.cis_init = sensor_imx518_cis_init,
+	.cis_deinit = sensor_imx518_cis_deinit,
 	.cis_log_status = sensor_imx518_cis_log_status,
 	.cis_set_global_setting = sensor_imx518_cis_set_global_setting,
 	.cis_mode_change = sensor_imx518_cis_mode_change,

@@ -42,7 +42,7 @@ int npu_core_on(struct npu_system *system)
 		ret += pm_runtime_get_sync(core->dev);
 		if (ret)
 			npu_err("fail(%d) in pm_runtime_get_sync\n", ret);
-		
+
 		pm_runtime_set_active(core->dev);
 
 		if (!active && pm_runtime_active(core->dev)) {

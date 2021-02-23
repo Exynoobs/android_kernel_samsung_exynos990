@@ -199,8 +199,7 @@ void dsp_device_power_off(struct dsp_device *dspdev)
 	dsp_leave();
 }
 
-int dsp_device_start(struct dsp_device *dspdev, unsigned int pm_level,
-		void *bin_list)
+int dsp_device_start(struct dsp_device *dspdev, unsigned int pm_level)
 {
 	int ret;
 
@@ -225,7 +224,7 @@ int dsp_device_start(struct dsp_device *dspdev, unsigned int pm_level,
 		return 0;
 	}
 
-	ret = dsp_system_start(&dspdev->system, bin_list);
+	ret = dsp_system_start(&dspdev->system);
 	if (ret)
 		goto p_err_system;
 

@@ -17,6 +17,7 @@
 #include <linux/dma-direction.h>
 #include "abox_qos.h"
 #include "abox_soc.h"
+#include <linux/modem_notifier.h>
 
 #define DEFAULT_CPU_GEAR_ID		(0xAB0CDEFA)
 #define TEST_CPU_GEAR_ID		(DEFAULT_CPU_GEAR_ID + 1)
@@ -450,6 +451,7 @@ struct abox_data {
 	enum abox_call_event call_event;
 	enum sound_type sound_type;
 	struct wakeup_source ws;
+	enum modem_event vss_state;
 };
 
 /**

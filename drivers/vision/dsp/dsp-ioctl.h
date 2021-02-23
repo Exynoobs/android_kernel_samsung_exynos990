@@ -21,14 +21,6 @@ struct dsp_ioc_boot {
 	struct timespec			timestamp[4];
 };
 
-struct dsp_ioc_boot_direct {
-	unsigned int			pm_level;
-	unsigned int			bin_list_size;
-	unsigned long			bin_list_addr;
-	int				reserved[3];
-	struct timespec			timestamp[4];
-};
-
 struct dsp_ioc_load_graph {
 	unsigned int			version;
 	unsigned int			param_size;
@@ -39,21 +31,6 @@ struct dsp_ioc_load_graph {
 	unsigned char			request_qos;
 	unsigned char			reserved1[3];
 	int				reserved2;
-	struct timespec			timestamp[4];
-};
-
-struct dsp_ioc_load_graph_direct {
-	unsigned int			version;
-	unsigned int			param_size;
-	unsigned long			param_addr;
-	unsigned int			kernel_count;
-	unsigned int			kernel_size;
-	unsigned long			kernel_addr;
-	unsigned int			bin_list_size;
-	unsigned long			bin_list_addr;
-	unsigned char			request_qos;
-	unsigned char			reserved1[3];
-	int				reserved2[3];
 	struct timespec			timestamp[4];
 };
 
@@ -89,9 +66,6 @@ struct dsp_ioc_control {
 #define DSP_IOC_UNLOAD_GRAPH	_IOWR('D', 2, struct dsp_ioc_unload_graph)
 #define DSP_IOC_EXECUTE_MSG	_IOWR('D', 3, struct dsp_ioc_execute_msg)
 #define DSP_IOC_CONTROL		_IOWR('D', 4, struct dsp_ioc_control)
-#define DSP_IOC_BOOT_DIRECT	_IOWR('D', 5, struct dsp_ioc_boot_direct)
-#define DSP_IOC_LOAD_GRAPH_DIRECT	\
-	_IOWR('D', 6, struct dsp_ioc_load_graph_direct)
 
 enum dsp_ioc_version {
 	DSP_IOC_VBASE,
@@ -106,8 +80,6 @@ union dsp_ioc_arg {
 	struct dsp_ioc_unload_graph		unload;
 	struct dsp_ioc_execute_msg		execute;
 	struct dsp_ioc_control			control;
-	struct dsp_ioc_boot_direct		boot_direct;
-	struct dsp_ioc_load_graph_direct	load_direct;
 };
 
 struct dsp_ioctl_ops {
@@ -120,10 +92,6 @@ struct dsp_ioctl_ops {
 			struct dsp_ioc_execute_msg *args);
 	int (*control)(struct dsp_context *dctx,
 			struct dsp_ioc_control *args);
-	int (*boot_direct)(struct dsp_context *dctx,
-			struct dsp_ioc_boot_direct *args);
-	int (*load_graph_direct)(struct dsp_context *dctx,
-			struct dsp_ioc_load_graph_direct *args);
 };
 
 long dsp_ioctl(struct file *file, unsigned int cmd, unsigned long arg);

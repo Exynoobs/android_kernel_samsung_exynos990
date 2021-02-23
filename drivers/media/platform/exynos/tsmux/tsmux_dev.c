@@ -365,14 +365,13 @@ static int tsmux_open(struct inode *inode, struct file *filp)
 
 	if (tsmux_dev->ctx_cnt >= TSMUX_MAX_CONTEXTS_NUM) {
 		print_tsmux(TSMUX_ERR, "%s, too many context\n", __func__);
-		ret = -ENOMEM;
-		goto err_init;
+		return -ENOMEM;
 	}
 
 	ctx = kzalloc(sizeof(struct tsmux_context), GFP_KERNEL);
 	if (!ctx) {
-		ret = -ENOMEM;
-		goto err_init;
+		print_tsmux(TSMUX_ERR, "%s, kzalloc is failed\n", __func__);
+		return -ENOMEM;
 	}
 
 	/* init ctx */
@@ -393,16 +392,17 @@ static int tsmux_open(struct inode *inode, struct file *filp)
 
 	spin_unlock_irqrestore(&tsmux_dev->device_spinlock, flags);
 
-	pm_runtime_get_sync(tsmux_dev->dev);
+	ret = pm_runtime_get_sync(tsmux_dev->dev);
 	if (ret < 0) {
 		print_tsmux(TSMUX_ERR, "pm_runtime_get_sync err(%d)\n", ret);
-		return ret;
+		goto err_init;
 	}
 #ifdef CLK_ENABLE
 	ret = clk_enable(tsmux_dev->tsmux_clock);
 	if (ret < 0) {
 		print_tsmux(TSMUX_ERR, "clk_enable err (%d)\n", ret);
-		return ret;
+		pm_runtime_put_sync(tsmux_dev->dev);
+		goto err_init;
 	}
 #endif
 
@@ -421,13 +421,15 @@ static int tsmux_open(struct inode *inode, struct file *filp)
 
 	ctx->otf_buf_mapped = false;
 
-	//print_tsmux_sfr(tsmux_dev);
-	//print_dbg_info_all(tsmux_dev);
-
-	tsmux_reset_pkt_ctrl(tsmux_dev);
-
-	//print_tsmux_sfr(tsmux_dev);
-	//print_dbg_info_all(tsmux_dev);
+	if (tsmux_reset_pkt_ctrl(tsmux_dev) == false) {
+		print_tsmux(TSMUX_ERR, "tsmux reset fail\n");
+#ifdef CLK_ENABLE
+		clk_disable(tsmux_dev->tsmux_clock);
+#endif
+		pm_runtime_put_sync(tsmux_dev->dev);
+		ret = -EINVAL;
+		goto err_init;
+	}
 
 	tsmux_dev->hw_version = tsmux_get_hw_version(tsmux_dev);
 
@@ -440,6 +442,14 @@ static int tsmux_open(struct inode *inode, struct file *filp)
 
 err_init:
 	print_tsmux(TSMUX_COMMON, "%s--, err_init\n", __func__);
+
+	spin_lock_irqsave(&tsmux_dev->device_spinlock, flags);
+
+	tsmux_dev->ctx_cnt--;
+	kfree(ctx);
+	filp->private_data = NULL;
+
+	spin_unlock_irqrestore(&tsmux_dev->device_spinlock, flags);
 
 	return ret;
 }
@@ -459,6 +469,7 @@ static int tsmux_release(struct inode *inode, struct file *filp)
 	clk_disable(tsmux_dev->tsmux_clock);
 #endif
 	spin_lock_irqsave(&tsmux_dev->device_spinlock, flags);
+	g_tsmux_dev = NULL;
 
 	if (tsmux_dev->ctx_cnt == 1)
 		del_timer(&tsmux_dev->watchdog_timer);
@@ -474,8 +485,6 @@ static int tsmux_release(struct inode *inode, struct file *filp)
 		print_tsmux(TSMUX_ERR, "pm_runtime_put_sync err(%d)\n", ret);
 		return ret;
 	}
-
-	g_tsmux_dev = NULL;
 
 	print_tsmux(TSMUX_COMMON, "%s--\n", __func__);
 	return ret;

@@ -33,8 +33,7 @@ int dsp_device_power_active(struct dsp_device *dspdev);
 int dsp_device_power_on(struct dsp_device *dspdev, unsigned int pm_level);
 void dsp_device_power_off(struct dsp_device *dspdev);
 
-int dsp_device_start(struct dsp_device *dspdev, unsigned int pm_level,
-		void *bin_list);
+int dsp_device_start(struct dsp_device *dspdev, unsigned int pm_level);
 int dsp_device_stop(struct dsp_device *dspdev, unsigned int count);
 int dsp_device_open(struct dsp_device *dspdev);
 int dsp_device_close(struct dsp_device *dspdev);

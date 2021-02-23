@@ -1381,6 +1381,15 @@ static void s2mps19_pmic_shutdown(struct platform_device *pdev)
 
 	s2mps19_update_reg(s2mps19->i2c, S2MPS19_REG_ADC_CTRL3, 0, ADC_EN_MASK);
 	pr_info("%s : ADC OFF\n", __func__);
+
+	if (system_state == SYSTEM_POWER_OFF) {
+		u8 reg;
+
+		s2mps19_update_reg(s2mps19->i2c, S2MPS19_PMIC_REG_B2M_CTRL, 0xC0, 0xC0);
+		udelay(160);
+		s2mps19_read_reg(s2mps19->i2c, S2MPS19_PMIC_REG_B2M_CTRL, &reg);
+		pr_info("@@@@@%s: B2M_CTRL: 0x%x\n", __func__, reg);
+	}
 }
 
 #if defined(CONFIG_PM)

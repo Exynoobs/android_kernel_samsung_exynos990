@@ -1146,14 +1146,18 @@ int __config_session_info(struct npu_session *session)
 {
 	int ret = 0;
 
-	struct addr_info *IFM_av;
-	struct addr_info *OFM_av;
-	struct addr_info *IMB_av;
-	struct addr_info *WGT_av;
+	struct addr_info *IFM_av = NULL;
+	struct addr_info *OFM_av = NULL;
+	struct addr_info *IMB_av = NULL;
+	struct addr_info *WGT_av = NULL;
 
 	struct npu_memory_buffer *IMB_mem_buf;
 
 	ret = __pilot_parsing_ncp(session, &session->IFM_cnt, &session->OFM_cnt, &session->IMB_cnt, &session->WGT_cnt);
+	if (ret) {
+		npu_err("failed in __pilot_parsing_ncp\n");
+		goto p_err;
+	}
 
 	IFM_av = kcalloc(session->IFM_cnt, sizeof(struct addr_info), GFP_KERNEL);
 	OFM_av = kcalloc(session->OFM_cnt, sizeof(struct addr_info), GFP_KERNEL);
@@ -1246,10 +1250,8 @@ int npu_session_start(struct npu_queue *queue)
 	vctx = container_of(queue, struct npu_vertex_ctx, queue);
 	session = container_of(vctx, struct npu_session, vctx);
 
-	if ((!vctx) || (!session)) {
-		ret = -EINVAL;
-		return ret;
-	}
+	BUG_ON(!vctx);
+	BUG_ON(!session);
 
 	session->ss_state |= BIT(NPU_SESSION_STATE_START);
 	return ret;

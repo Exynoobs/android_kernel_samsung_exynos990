@@ -1036,6 +1036,10 @@ static void csi_err_handle(struct is_device_csi *csi)
 		/* Disable CSIS */
 		csi_hw_disable(csi->base_reg);
 
+		for (vc = CSI_VIRTUAL_CH_0; vc < CSI_VIRTUAL_CH_MAX; vc++)
+			csi_hw_s_dma_irq_msk(csi->cmn_reg[csi->scm][vc], false);
+		csi_hw_s_irq_msk(csi->base_reg, false, csi->f_id_dec);
+
 		/* CSIS register dump */
 		if ((csi->error_count == CSI_ERR_COUNT) || (csi->error_count % 20 == 0)) {
 			csi_hw_dump(csi->base_reg);

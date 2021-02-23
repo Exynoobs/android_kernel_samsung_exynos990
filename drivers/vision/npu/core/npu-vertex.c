@@ -33,6 +33,7 @@
 #include "npu-device.h"
 #include "npu-session.h"
 #include "npu-common.h"
+#include "npu-scheduler.h"
 
 const struct vision_file_ops npu_vertex_fops;
 const struct vertex_ioctl_ops npu_vertex_ioctl_ops;
@@ -153,6 +154,10 @@ static int npu_vertex_open(struct file *file)
 	struct mutex *lock = &vertex->lock;
 	struct npu_vertex_ctx *vctx = NULL;
 	struct npu_session *session = NULL;
+	struct npu_scheduler_info *info;
+
+	info = npu_scheduler_get_info();
+	npu_scheduler_boost_on(info);
 
 	/* check npu_device emergency error */
 	ret = check_emergency(device);
@@ -210,6 +215,7 @@ ErrorExit:
 		npu_info("%s: (%d)\n",  __func__, ret);
 
 	mutex_unlock(lock);
+	npu_scheduler_boost_off_timeout(info, NPU_SCHEDULER_BOOST_TIMEOUT);
 
 	if (ret < -1000) {
 		/* Return value is not acceptable as open's result */
@@ -365,6 +371,10 @@ static int npu_vertex_s_format(struct file *file, struct vs4l_format_list *flist
 	struct npu_queue *queue = &vctx->queue;
 	struct mutex *lock = &vctx->lock;
 	u32 FM_cnt;
+	struct npu_scheduler_info *info;
+
+	info = npu_scheduler_get_info();
+	npu_scheduler_boost_on(info);
 
 	/* check npu_device emergency error */
 	ret = check_emergency_vctx(vctx);
@@ -423,10 +433,12 @@ static int npu_vertex_s_format(struct file *file, struct vs4l_format_list *flist
 
 	npu_iinfo("%s():%d\n", vctx, __func__, ret);
 	mutex_unlock(lock);
+	npu_scheduler_boost_off_timeout(info, NPU_SCHEDULER_BOOST_TIMEOUT);
 	return ret;
 p_err:
 	vctx->state &= (~BIT(NPU_VERTEX_GRAPH));
 	mutex_unlock(lock);
+	npu_scheduler_boost_off_timeout(info, NPU_SCHEDULER_BOOST_TIMEOUT);
 	return ret;
 }
 

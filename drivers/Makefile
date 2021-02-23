@@ -229,6 +229,7 @@ ifeq ($(CONFIG_GATOR), y)
 endif
 
 # KUnit
+obj-y				+= kunit/
 
 # SPU signature verify
 obj-$(CONFIG_SPU_VERIFY) += spu_verify/

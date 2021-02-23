@@ -42,7 +42,7 @@ static void adv_tracer_ipc_dbgc_reset(void)
 	exynos_pmu_update(pmu_dbgcore_config, 1, 0);
 	dev_emerg(adv_tracer_ipc->dev, "DBGC power off for recovery.\n");
 	exynos_pmu_update(pmu_dbgcore_config, 1, 1);
-	usleep_range(1000, 10000);
+	udelay(999);
 	exynos_pmu_read(pmu_dbgcore_status, &val);
 	if (!val)
 		dev_err(adv_tracer_ipc->dev, "DBGC abnormal state!\n");

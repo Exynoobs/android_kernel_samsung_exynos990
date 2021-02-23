@@ -1910,7 +1910,7 @@ int secdbg_show_busy_task(unsigned int cpu, unsigned long long duration, int cou
 		offset += scnprintf(buf + offset, LOG_LINE_MAX - offset, \
 			" %s:%d[%c,%d](%u%%)", info->tsk->comm, info->tsk->pid, \
 			sched_class_array[get_sched_class(info->tsk)],	\
-			info->tsk->prio, (unsigned int)((info->residency * 100) / real_duration));
+			info->tsk->prio, real_duration > 0 ? (unsigned int)((info->residency * 100) / real_duration) : 0);
 		if (--count == 0)
 			break;
 	}

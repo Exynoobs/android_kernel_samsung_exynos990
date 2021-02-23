@@ -27,7 +27,7 @@ static DEFINE_SPINLOCK(pm_qos_lock);
 struct sec_pm_debug_info {
 	struct device		*dev;
 	struct device		*sec_pm_dev;
-	struct notifier_block	nb;
+	struct notifier_block	nb[PM_QOS_NUM_CLASSES];
 };
 
 u8 pmic_onsrc;
@@ -140,14 +140,12 @@ ATTRIBUTE_GROUPS(sec_pm_debug);
 static int sec_pm_debug_qos_notifier(struct notifier_block *nb,
 					unsigned long val, void *v)
 {
-	struct sec_pm_debug_info *info =
-		container_of(nb, struct sec_pm_debug_info, nb);
 	struct pm_qos_request *req;
 	unsigned long flags;
 	unsigned long i;
 
 	if (!v) {
-		dev_err(info->dev, "%s: v is NULL!\n", __func__);
+		pr_err("%s: v is NULL!\n", __func__);
 		return NOTIFY_OK;
 	}
 
@@ -167,29 +165,18 @@ static int sec_pm_debug_qos_notifier(struct notifier_block *nb,
 	return NOTIFY_OK;
 }
 
-static inline bool is_exclusive_of_qos_class(int pm_qos_class)
-{
-	if (pm_qos_exclusive_class[pm_qos_class])
-		return true;
-
-	return false;
-}
-
 static void sec_pm_debug_register_notifier(struct sec_pm_debug_info *info)
 {
 	int ret, i;
 
 	dev_info(info->dev, "%s\n", __func__);
 
-	info->nb.notifier_call = sec_pm_debug_qos_notifier;
-
 	for (i = PM_QOS_CPU_DMA_LATENCY; i < PM_QOS_NUM_CLASSES; i++) {
-		bool skip = is_exclusive_of_qos_class(i);
-
-		if (skip)
+		if (pm_qos_exclusive_class[i])
 			continue;
 
-		ret = pm_qos_add_notifier(i, &info->nb);
+		info->nb[i].notifier_call = sec_pm_debug_qos_notifier;
+		ret = pm_qos_add_notifier(i, &info->nb[i]);
 		if (ret < 0)
 			dev_err(info->dev, "%s: fail to add notifier(%d)\n",
 					__func__, i);
@@ -203,12 +190,10 @@ static void sec_pm_debug_unregister_notifier(struct sec_pm_debug_info *info)
 	dev_info(info->dev, "%s\n", __func__);
 
 	for (i = PM_QOS_CPU_DMA_LATENCY; i < PM_QOS_NUM_CLASSES; i++) {
-		bool skip = is_exclusive_of_qos_class(i);
-
-		if (skip)
+		if (pm_qos_exclusive_class[i])
 			continue;
 
-		ret = pm_qos_remove_notifier(i, &info->nb);
+		ret = pm_qos_remove_notifier(i, &info->nb[i]);
 		if (ret < 0)
 			dev_err(info->dev, "%s: fail to remove notifier(%d)\n",
 					__func__, i);

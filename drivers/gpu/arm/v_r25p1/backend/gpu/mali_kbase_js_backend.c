@@ -256,12 +256,7 @@ static enum hrtimer_restart timer_callback(struct hrtimer *timer)
 		}
 	}
 	if (reset_needed) {
-		/* MALI_SEC_INTEGRATION */
-		struct exynos_context *platform = NULL;
-		platform = (struct exynos_context *)kbdev->platform_context;
-
 		dev_err(kbdev->dev, "JS: Job has been on the GPU for too long (JS_RESET_TICKS_SS/DUMPING timeout hit). Issueing GPU soft-reset to resolve.");
-		platform->hardstop = true;
 
 		if (kbase_prepare_to_reset_gpu_locked(kbdev))
 			kbase_reset_gpu_locked(kbdev);

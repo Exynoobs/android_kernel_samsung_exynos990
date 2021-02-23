@@ -11,8 +11,6 @@
 
 #include "dl/dsp-common.h"
 
-#define DL_COMMIT_HASH			"69b8b05e"
-
 enum dsp_dl_status {
 	DSP_DL_FAIL = -1,
 	DSP_DL_SUCCESS = 0,

@@ -202,7 +202,7 @@ static int exynos_s2mpufd_probe(struct platform_device *pdev)
 			goto out_with_dma_free;
 		}
 	}
-	ret = exynos_early_hvc(HVC_CMD_INIT_S2MPUFD,
+	ret = exynos_hvc(HVC_CMD_INIT_S2MPUFD,
 			data->fail_info_pa,
 			data->ch_num,
 			sizeof(struct s2mpufd_fail_info),

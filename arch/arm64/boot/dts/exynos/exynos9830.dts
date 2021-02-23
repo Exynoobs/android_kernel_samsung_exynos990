@@ -2625,11 +2625,6 @@
 			reg = <0x00 0xc3000000 0x80000>;
 		};
 
-		harxlog_mem {
-			compatible = "exynos,harxlog";
-			reg = <0x00 0xc3080000 0x80000>;
-		};
-
 		s2mpu_table {
 			compatible = "exynos,s2mpu_table";
 			reg = <0x00 0xc1800000 0x300000>;
@@ -2637,7 +2632,7 @@
 
 		abox-dbg {
 			compatible = "exynos,abox_dbg";
-			size = <0x5200000>;
+			size = <0x5600000>;
 			alloc-ranges = <0x00 0xc0000000 0x20000000>;
 			phandle = <0xa2>;
 		};
@@ -2651,7 +2646,7 @@
 
 		abox-rmem {
 			compatible = "exynos,abox_rmem";
-			reg = <0x00 0xf8000000 0x2800000>;
+			reg = <0x00 0xf8000000 0x2a00000>;
 			phandle = <0x226>;
 		};
 
@@ -6750,7 +6745,6 @@
 			seh_enable = <0x00>;
 			pm_test_enable = <0x00>;
 			seclog_enable = <0x00>;
-			harxlog_enable = <0x00>;
 			sdm_enable = <0x00>;
 		};
 
@@ -15348,10 +15342,6 @@
 	seclog {
 		compatible = "samsung,exynos-seclog";
 		interrupts = <0x00 0xe0 0x04>;
-	};
-
-	harxlog {
-		compatible = "samsung,exynos-harxlog";
 	};
 
 	secmem {

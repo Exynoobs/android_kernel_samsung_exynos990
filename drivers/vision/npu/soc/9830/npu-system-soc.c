@@ -610,7 +610,7 @@ static int init_iomem_area(struct npu_system *system)
 	struct iomem_reg_t *iomem_data;
 	const char **iomem_name;
 	struct npu_iomem_area *id;
-	struct npu_memory_buffer **bd;
+	struct npu_memory_buffer **bd = NULL;
 
 	const struct npu_iomem_init_data init_data[] = {
 		{NULL,		"TCUSRAM",	(void*)&system->tcu_sram},

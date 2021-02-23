@@ -1989,10 +1989,6 @@ static int kbase_pm_do_reset(struct kbase_device *kbdev)
 	struct kbasep_reset_timeout_data rtdata;
 	int ret;
 
-	/* MALI_SEC_INTEGRATION */
-	struct exynos_context *platform = NULL;
-	platform = (struct exynos_context *)kbdev->platform_context;
-
 	KBASE_KTRACE_ADD(kbdev, CORE_GPU_SOFT_RESET, NULL, 0);
 
 	KBASE_TLSTREAM_JD_GPU_SOFT_RESET(kbdev, kbdev);
@@ -2024,51 +2020,6 @@ static int kbase_pm_do_reset(struct kbase_device *kbdev)
 
 	/* Wait for the RESET_COMPLETED interrupt to be raised */
 	kbase_pm_wait_for_reset(kbdev);
-
-	if (platform->hardstop) {
-		hrtimer_cancel(&rtdata.timer);
-		dev_err(kbdev->dev, "Due to the hardstop, now attempting a power cycle\n");
-
-		/* power cycle */
-		platform->hardstop = false;
-		gpu_power_force_off(platform);
-		gpu_power_force_on(platform);
-		/* from ARM */
-		//kbdev->pm.backend.callback_power_off(kbdev);
-		//kbdev->pm.backend.callback_power_on(kbdev);
-
-		/* do a reset after the power cycle */
-		rtdata.timed_out = 0;
-		hrtimer_start(&rtdata.timer, HR_TIMER_DELAY_MSEC(RESET_TIMEOUT),
-								HRTIMER_MODE_REL);
-
-		kbase_reg_write(kbdev, GPU_CONTROL_REG(GPU_IRQ_MASK), RESET_COMPLETED);
-		kbase_reg_write(kbdev, GPU_CONTROL_REG(GPU_COMMAND),
-				GPU_COMMAND_SOFT_RESET);
-
-		/* Wait for the RESET_COMPLETED interrupt to be raised */
-		kbase_pm_wait_for_reset(kbdev);
-
-		if (rtdata.timed_out == 0) {
-			/* GPU has been reset */
-			hrtimer_cancel(&rtdata.timer);
-			destroy_hrtimer_on_stack(&rtdata.timer);
-			return 0;
-		}
-
-		/* No interrupt has been received - check if the RAWSTAT register says
-		 * the reset has completed */
-		if (kbase_reg_read(kbdev, GPU_CONTROL_REG(GPU_IRQ_RAWSTAT)) &
-								RESET_COMPLETED) {
-			/* The interrupt is set in the RAWSTAT; this suggests that the
-			 * interrupts are not getting to the CPU */
-			dev_err(kbdev->dev, "Reset interrupt didn't reach CPU. Check interrupt assignments.\n");
-			/* If interrupts aren't working we can't continue. */
-		}
-
-		destroy_hrtimer_on_stack(&rtdata.timer);
-		return 0;
-	}
 
 	if (rtdata.timed_out == 0) {
 		/* GPU has been reset */
@@ -2114,46 +2065,10 @@ static int kbase_pm_do_reset(struct kbase_device *kbdev)
 		return 0;
 	}
 
-	dev_err(kbdev->dev, "Failed to hard-reset the GPU (timed out after %d ms), now attempting a power cycle\n",
-								RESET_TIMEOUT);
-
-	/* power cycle */
-	gpu_power_force_off(platform);
-	gpu_power_force_on(platform);
-	/* from ARM */
-	//kbdev->pm.backend.callback_power_off(kbdev);
-	//kbdev->pm.backend.callback_power_on(kbdev);
-
-	/* do a reset after the power cycle */
-	rtdata.timed_out = 0;
-	hrtimer_start(&rtdata.timer, HR_TIMER_DELAY_MSEC(RESET_TIMEOUT),
-							HRTIMER_MODE_REL);
-
-	kbase_reg_write(kbdev, GPU_CONTROL_REG(GPU_IRQ_MASK), RESET_COMPLETED);
-	kbase_reg_write(kbdev, GPU_CONTROL_REG(GPU_COMMAND),
-			GPU_COMMAND_SOFT_RESET);
-
-	/* Wait for the RESET_COMPLETED interrupt to be raised */
-	kbase_pm_wait_for_reset(kbdev);
-
-	if (rtdata.timed_out == 0) {
-		/* GPU has been reset */
-		hrtimer_cancel(&rtdata.timer);
-		destroy_hrtimer_on_stack(&rtdata.timer);
-		return 0;
-	}
-
-	/* No interrupt has been received - check if the RAWSTAT register says
-	 * the reset has completed */
-	if (kbase_reg_read(kbdev, GPU_CONTROL_REG(GPU_IRQ_RAWSTAT)) &
-							RESET_COMPLETED) {
-		/* The interrupt is set in the RAWSTAT; this suggests that the
-		 * interrupts are not getting to the CPU */
-		dev_err(kbdev->dev, "Reset interrupt didn't reach CPU. Check interrupt assignments.\n");
-		/* If interrupts aren't working we can't continue. */
-	}
-
 	destroy_hrtimer_on_stack(&rtdata.timer);
+
+	dev_err(kbdev->dev, "Failed to hard-reset the GPU (timed out after %d ms)\n",
+								RESET_TIMEOUT);
 
 	return -EINVAL;
 }

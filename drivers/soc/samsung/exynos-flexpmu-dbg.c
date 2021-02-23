@@ -28,8 +28,8 @@
 #define FLEXPMU_DBG_FUNC_READ(__name)		\
 	exynos_flexpmu_dbg_ ## __name ## _read
 
-#define BUF_MAX_LINE	10
-#define BUF_LINE_SIZE	30
+#define BUF_MAX_LINE	20
+#define BUF_LINE_SIZE	50
 #define BUF_SIZE	(BUF_MAX_LINE * BUF_LINE_SIZE)
 
 #define DEC_PRINT	1
@@ -470,6 +470,8 @@ static ssize_t exynos_flexpmu_dbg_read(struct file *file, char __user *user_buf,
 	char buf[BUF_SIZE] = {0,};
 
 	ret = flexpmu_debugfs_read_fptr[d2f->fid](d2f->fid, buf);
+	if (ret > sizeof(buf))
+		return ret;
 
 	return simple_read_from_buffer(user_buf, count, ppos, buf, ret);
 }

@@ -1841,10 +1841,13 @@ void exynos_devfreq_get_profile(unsigned int devfreq_type, ktime_t **time_in_sta
 {
 	struct exynos_devfreq_data *data = devfreq_data[devfreq_type];
 	u32 max_state = data->max_state;
+	int prev_idx;
 
 	mutex_lock(&data->lock);
 
-	exynos_devfreq_update_profile(data, exynos_devfreq_get_opp_idx(data->opp_list, data->max_state, data->old_freq));
+	prev_idx = exynos_devfreq_get_opp_idx(data->opp_list, data->max_state, data->old_freq);
+	if (prev_idx >= 0)
+		exynos_devfreq_update_profile(data, prev_idx);
 
 	memcpy(time_in_state[0], data->profile->active_time_in_state, sizeof(ktime_t) * max_state);
 	memcpy(time_in_state[1], data->profile->time_in_state, sizeof(ktime_t) * max_state);
@@ -1863,7 +1866,7 @@ static int exynos_devfreq_update_profile(struct exynos_devfreq_data *data, int p
 	u64 freq_stats0 = 0, freq_stats1 = 0, freq_stats2 = 0, freq_stats3 = 0;
 	ktime_t cur_time, cur_active;
 
-	exynos_bcm_get_data(&freq_stats0, &freq_stats2, &freq_stats3, &freq_stats1);
+	exynos_bcm_get_data(&freq_stats0, &freq_stats1, &freq_stats2, &freq_stats3);
 
 	cur_active = exynos_devfreq_get_ppc_status(data);
 
@@ -1879,13 +1882,13 @@ static int exynos_devfreq_update_profile(struct exynos_devfreq_data *data, int p
 	profile->last_freq_stats[0] = freq_stats0;
 
 	profile->freq_stats[1][prev_lev] += freq_stats1 - profile->last_freq_stats[1];
-	profile->last_freq_stats[1] = freq_stats1;
+	profile->last_freq_stats[1] = freq_stats3;
 
 	profile->freq_stats[2][prev_lev] += freq_stats2 - profile->last_freq_stats[2];
-	profile->last_freq_stats[2] = freq_stats2;
+	profile->last_freq_stats[2] = freq_stats1;
 
 	profile->freq_stats[3][prev_lev] += freq_stats3 - profile->last_freq_stats[3];
-	profile->last_freq_stats[3] = freq_stats3;
+	profile->last_freq_stats[3] = freq_stats2;
 
 	return 0;
 }
@@ -1953,8 +1956,12 @@ static int exynos_devfreq_target(struct device *dev, unsigned long *target_freq,
 #endif
 	trace_exynos_devfreq(data->old_freq, data->new_freq, dev_name(data->dev));
 
-	if (data->profile)
-		exynos_devfreq_update_profile(data, exynos_devfreq_get_opp_idx(data->opp_list, data->max_state, data->old_freq));
+	if (data->profile) {
+		int prev_idx = exynos_devfreq_get_opp_idx(data->opp_list, data->max_state, data->old_freq);
+
+		if (prev_idx >= 0)
+			exynos_devfreq_update_profile(data, prev_idx);
+	}
 
 	data->old_freq = data->new_freq;
 	data->old_idx = data->new_idx;

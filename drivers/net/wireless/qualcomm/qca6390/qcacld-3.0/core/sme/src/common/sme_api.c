@@ -1784,6 +1784,7 @@ QDF_STATUS sme_set_ese_roam_scan_channel_list(mac_handle_t mac_handle,
 	uint8_t newChannelList[CFG_VALID_CHANNEL_LIST_LEN * 5] = { 0 };
 	uint8_t i = 0, j = 0;
 	enum band_info band = -1;
+	uint32_t band_bitmap;
 
 	if (sessionId >= WLAN_MAX_VDEVS) {
 		QDF_TRACE(QDF_MODULE_ID_SME, QDF_TRACE_LEVEL_ERROR,
@@ -1806,7 +1807,8 @@ QDF_STATUS sme_set_ese_roam_scan_channel_list(mac_handle_t mac_handle,
 				curchnl_list_info->freq_list[i]);
 		}
 	}
-        ucfg_reg_get_band(mac->pdev, &band);
+	ucfg_reg_get_band(mac->pdev, &band_bitmap);
+	band = wlan_reg_band_bitmap_to_band_info(band_bitmap);
 	status = csr_create_roam_scan_channel_list(mac, sessionId,
 				chan_freq_list, numChannels,
 				band);
@@ -7617,23 +7619,25 @@ sme_update_roam_scan_freq_list(mac_handle_t mac_handle, uint8_t vdev_id,
 	}
 
 	neighbor_roam_info = &mac->roam.neighborRoamInfo[vdev_id];
-	if (neighbor_roam_info->cfgParams.specific_chan_info.numOfChannels) {
+	if (neighbor_roam_info->cfgParams.specific_chan_info.numOfChannels &&
+	    freq_list_type == QCA_PREFERRED_SCAN_FREQ_LIST) {
 		sme_err("Specific channel list is already configured");
 		sme_release_global_lock(&mac->sme);
 		return QDF_STATUS_E_INVAL;
 	}
 
+	sme_debug("frequency list type %d", freq_list_type);
+
 	if (freq_list_type == QCA_PREFERRED_SCAN_FREQ_LIST) {
-		sme_debug("Preferred frequency list: ");
 		channel_info = &neighbor_roam_info->cfgParams.pref_chan_info;
+		status = sme_update_roam_scan_channel_list(
+					mac_handle, vdev_id, channel_info,
+					freq_list, num_chan);
 	} else {
-		goto out;
+		status = sme_change_roam_scan_channel_list(mac_handle, vdev_id,
+							   freq_list, num_chan);
 	}
 
-	status = sme_update_roam_scan_channel_list(mac_handle, vdev_id,
-						   channel_info, freq_list,
-						   num_chan);
-out:
 	sme_release_global_lock(&mac->sme);
 
 	return status;

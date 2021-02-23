@@ -220,6 +220,8 @@ static const struct kbase_device_init dev_init[] = {
 	{kbase_gpuprops_populate_user_buffer, kbase_gpuprops_free_user_buffer,
 			"GPU property population failed"},
 #endif
+	{kbase_dummy_job_wa_load, kbase_dummy_job_wa_cleanup,
+			"Dummy job workaround load failed"},
 };
 
 static void kbase_device_term_partial(struct kbase_device *kbdev,

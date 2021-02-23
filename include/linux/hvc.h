@@ -21,11 +21,6 @@
 #define HVC_CMD_GET_S2MPUFD_FAIL_INFO	(HVC_FID_BASE | HVC_CMD_S2MPUFD_BASE | 0x2)
 #ifndef	__ASSEMBLY__
 #include <linux/types.h>
-extern uint64_t exynos_early_hvc(uint32_t cmd,
-			   uint64_t arg1,
-			   uint64_t arg2,
-			   uint64_t arg3,
-			   uint64_t arg4);
 
 extern uint64_t exynos_hvc(uint32_t cmd,
 			   uint64_t arg1,

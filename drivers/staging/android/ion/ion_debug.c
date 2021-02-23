@@ -424,6 +424,10 @@ static struct ion_oom_notifier_struct ion_oom_notifier = {
 	.nb = { .notifier_call = ion_oom_notifier_fn}
 };
 
+static struct ion_oom_notifier_struct ion_panic_notifier = {
+	.nb = { .notifier_call = ion_oom_notifier_fn}
+};
+
 void ion_debug_initialize(struct ion_device *idev)
 {
 	struct dentry *buffer_file, *event_file;
@@ -444,6 +448,9 @@ void ion_debug_initialize(struct ion_device *idev)
 
 	ion_oom_notifier.idev = idev;
 	register_oom_debug_notifier(&ion_oom_notifier.nb);
+
+	ion_panic_notifier.idev = idev;
+	atomic_notifier_chain_register(&panic_notifier_list, &ion_panic_notifier.nb);
 
 	atomic_set(&eventid, -1);
 }

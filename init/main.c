@@ -476,7 +476,7 @@ static noinline void __ref rest_init(void)
 }
 
 #ifdef CONFIG_KDP_CRED
-int is_recovery __kdp_ro = 0;
+int __is_kdp_recovery __kdp_ro = 0;
 #endif
 
 /* Check for early params. */
@@ -499,7 +499,7 @@ static int __init do_early_param(char *param, char *val,
 	if ((strncmp(param, "bootmode", 9) == 0)) {
 			//printk("\n [KDP] In Recovery Mode= %d\n",*val);
 			if ((strncmp(val, "2", 2) == 0)) {
-				is_recovery = 1;
+				__is_kdp_recovery = 1;
 			}
 	}
 #endif

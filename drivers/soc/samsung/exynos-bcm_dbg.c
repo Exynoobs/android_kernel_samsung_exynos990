@@ -530,14 +530,14 @@ bool exynos_bcm_calc_enable(int enable)
 EXPORT_SYMBOL(exynos_bcm_calc_enable);
 
 void exynos_bcm_get_data(u64 *freq_stats0, u64 *freq_stats1, u64
-		*rdata_latency_sum, u64 *freq_stats3)
+		*freq_stats2, u64 *freq_stats3)
 {
 	struct exynos_bcm_calc *bcm_calc = bcm_dbg_data->bcm_calc;
 	int i;
 
 	*freq_stats0 = 0;
 	*freq_stats1 = 0;
-	*rdata_latency_sum = 0;
+	*freq_stats2 = 0;
 
 	if (bcm_calc &&	bcm_calc->sample_time) {
 		mutex_lock(&bcm_calc->lock);
@@ -555,7 +555,7 @@ void exynos_bcm_get_data(u64 *freq_stats0, u64 *freq_stats1, u64
 				bcm_calc->acc_data[0].pmcnt[0]
 				+ bcm_calc->acc_data[1].pmcnt[0];
 
-			*rdata_latency_sum =
+			*freq_stats2 =
 				bcm_calc->acc_data[0].pmcnt[6]
 				+ bcm_calc->acc_data[1].pmcnt[6];
 			*freq_stats3 =

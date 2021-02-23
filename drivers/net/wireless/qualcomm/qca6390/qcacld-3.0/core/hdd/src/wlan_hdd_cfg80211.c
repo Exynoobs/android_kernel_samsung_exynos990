@@ -1117,9 +1117,19 @@ hdd_convert_hang_reason(enum qdf_hang_reason reason)
 	case QDF_VDEV_PEER_DELETE_ALL_RESPONSE_TIMED_OUT:
 		ret_val = QCA_WLAN_HANG_VDEV_PEER_DELETE_ALL_RESPONSE_TIMED_OUT;
 		break;
+	case QDF_WMI_BUF_SEQUENCE_MISMATCH:
+		ret_val = QCA_WLAN_HANG_VDEV_PEER_DELETE_ALL_RESPONSE_TIMED_OUT;
+		break;
+	case QDF_HAL_REG_WRITE_FAILURE:
+		ret_val = QCA_WLAN_HANG_REG_WRITE_FAILURE;
+		break;
+	case QDF_SUSPEND_NO_CREDIT:
+		ret_val = QCA_WLAN_HANG_SUSPEND_NO_CREDIT;
+		break;
 	case QDF_REASON_UNSPECIFIED:
 	default:
 		ret_val = QCA_WLAN_HANG_REASON_UNSPECIFIED;
+		break;
 	}
 	return ret_val;
 }
@@ -11440,6 +11450,26 @@ static int wlan_hdd_cfg80211_get_bus_size(struct wiphy *wiphy,
 
 	return errno;
 }
+const struct nla_policy setband_policy[QCA_WLAN_VENDOR_ATTR_MAX + 1] = {
+	[QCA_WLAN_VENDOR_ATTR_SETBAND_VALUE] = {.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_SETBAND_MASK] = {.type = NLA_U32},
+};
+
+static uint32_t
+wlan_vendor_bitmap_to_reg_wifi_band_bitmap(uint32_t vendor_bitmap)
+{
+	uint32_t reg_bitmap = 0;
+
+	if (vendor_bitmap & QCA_SETBAND_2G)
+		reg_bitmap |= BIT(REG_BAND_2G);
+	if (vendor_bitmap & QCA_SETBAND_5G)
+		reg_bitmap |= BIT(REG_BAND_5G);
+	if (vendor_bitmap & QCA_SETBAND_6G)
+		reg_bitmap |= BIT(REG_BAND_6G);
+
+	return reg_bitmap;
+}
+
 
 /**
  *__wlan_hdd_cfg80211_setband() - set band
@@ -11458,8 +11488,7 @@ static int __wlan_hdd_cfg80211_setband(struct wiphy *wiphy,
 	struct net_device *dev = wdev->netdev;
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_MAX + 1];
 	int ret;
-	static const struct nla_policy policy[QCA_WLAN_VENDOR_ATTR_MAX + 1]
-		= {[QCA_WLAN_VENDOR_ATTR_SETBAND_VALUE] = { .type = NLA_U32 } };
+	uint32_t reg_wifi_band_bitmap = 0, band_val, band_mask;
 
 	hdd_enter();
 
@@ -11468,18 +11497,28 @@ static int __wlan_hdd_cfg80211_setband(struct wiphy *wiphy,
 		return ret;
 
 	if (wlan_cfg80211_nla_parse(tb, QCA_WLAN_VENDOR_ATTR_MAX,
-				    data, data_len, policy)) {
+				    data, data_len, setband_policy)) {
 		hdd_err("Invalid ATTR");
 		return -EINVAL;
 	}
 
-	if (!tb[QCA_WLAN_VENDOR_ATTR_SETBAND_VALUE]) {
+	if (tb[QCA_WLAN_VENDOR_ATTR_SETBAND_MASK]) {
+		band_mask = nla_get_u32(tb[QCA_WLAN_VENDOR_ATTR_SETBAND_MASK]);
+		reg_wifi_band_bitmap =
+			wlan_vendor_bitmap_to_reg_wifi_band_bitmap(band_mask);
+	} else if (tb[QCA_WLAN_VENDOR_ATTR_SETBAND_VALUE]) {
+		band_val = nla_get_u32(tb[QCA_WLAN_VENDOR_ATTR_SETBAND_VALUE]);
+		reg_wifi_band_bitmap =
+			hdd_reg_legacy_setband_to_reg_wifi_band_bitmap(
+								      band_val);
+	}
+
+	if (!reg_wifi_band_bitmap) {
 		hdd_err("attr SETBAND_VALUE failed");
 		return -EINVAL;
 	}
 
-	ret = hdd_reg_set_band(dev,
-		nla_get_u32(tb[QCA_WLAN_VENDOR_ATTR_SETBAND_VALUE]));
+	ret = hdd_reg_set_band(dev, reg_wifi_band_bitmap);
 
 	hdd_exit();
 	return ret;
@@ -12108,6 +12147,109 @@ static int wlan_hdd_cfg80211_setband(struct wiphy *wiphy,
 
 	return errno;
 }
+
+static uint32_t
+wlan_reg_wifi_band_bitmap_to_vendor_bitmap(uint32_t reg_wifi_band_bitmap)
+{
+	uint32_t vendor_mask = 0;
+
+	if (reg_wifi_band_bitmap & BIT(REG_BAND_2G))
+		vendor_mask |= QCA_SETBAND_2G;
+	if (reg_wifi_band_bitmap & BIT(REG_BAND_5G))
+		vendor_mask |= QCA_SETBAND_5G;
+	if (reg_wifi_band_bitmap & BIT(REG_BAND_6G))
+		vendor_mask |= QCA_SETBAND_6G;
+
+	return vendor_mask;
+}
+
+/**
+ *__wlan_hdd_cfg80211_getband() - get band
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Length of @data
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int __wlan_hdd_cfg80211_getband(struct wiphy *wiphy,
+				       struct wireless_dev *wdev,
+				       const void *data, int data_len)
+{
+	struct hdd_context *hdd_ctx = wiphy_priv(wiphy);
+	struct sk_buff *skb;
+	QDF_STATUS status = QDF_STATUS_SUCCESS;
+	int ret;
+	uint32_t reg_wifi_band_bitmap, vendor_band_mask;
+
+	hdd_enter();
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (ret)
+		return ret;
+
+	skb = cfg80211_vendor_cmd_alloc_reply_skb(hdd_ctx->wiphy,
+						  sizeof(uint32_t) +
+						  NLA_HDRLEN);
+
+	if (!skb) {
+		hdd_err("cfg80211_vendor_event_alloc failed");
+		return -ENOMEM;
+	}
+
+	status = ucfg_reg_get_band(hdd_ctx->pdev, &reg_wifi_band_bitmap);
+	if (!QDF_IS_STATUS_SUCCESS(status)) {
+		hdd_err("failed to get band");
+		goto failure;
+	}
+
+	vendor_band_mask = wlan_reg_wifi_band_bitmap_to_vendor_bitmap(
+							reg_wifi_band_bitmap);
+
+	if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_SETBAND_MASK,
+			vendor_band_mask)) {
+		hdd_err("nla put failure");
+		goto failure;
+	}
+
+	cfg80211_vendor_cmd_reply(skb);
+
+	hdd_exit();
+
+	return 0;
+
+failure:
+	kfree_skb(skb);
+	return -EINVAL;
+}
+
+/**
+ * wlan_hdd_cfg80211_getband() - Wrapper to getband
+ * @wiphy:    wiphy structure pointer
+ * @wdev:     Wireless device structure pointer
+ * @data:     Pointer to the data received
+ * @data_len: Length of @data
+ *
+ * Return: 0 on success; errno on failure
+ */
+static int wlan_hdd_cfg80211_getband(struct wiphy *wiphy,
+				     struct wireless_dev *wdev,
+				     const void *data, int data_len)
+{
+	int errno;
+	struct osif_vdev_sync *vdev_sync;
+
+	errno = osif_vdev_sync_op_start(wdev->netdev, &vdev_sync);
+	if (errno)
+		return errno;
+
+	errno = __wlan_hdd_cfg80211_getband(wiphy, wdev, data, data_len);
+
+	osif_vdev_sync_op_stop(vdev_sync);
+
+	return errno;
+}
+
 
 /**
  * wlan_hdd_cfg80211_sar_convert_limit_set() - Convert limit set value
@@ -15068,6 +15210,15 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] = {
 	},
 	{
 		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GETBAND,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+			 WIPHY_VENDOR_CMD_NEED_NETDEV |
+			 WIPHY_VENDOR_CMD_NEED_RUNNING,
+		.doit = wlan_hdd_cfg80211_getband,
+		vendor_command_policy(VENDOR_CMD_RAW_DATA, 0)
+	},
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
 		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_ROAMING,
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV |
@@ -15865,7 +16016,7 @@ static void wlan_hdd_update_ht_cap(struct hdd_context *hdd_ctx)
 static void wlan_hdd_update_band_cap_in_wiphy(struct hdd_context *hdd_ctx)
 {
 	int i, j;
-	uint8_t band_capability;
+	uint32_t band_capability;
 	QDF_STATUS status;
 	struct ieee80211_supported_band *band;
 
@@ -15883,7 +16034,7 @@ static void wlan_hdd_update_band_cap_in_wiphy(struct hdd_context *hdd_ctx)
 			band = hdd_ctx->wiphy->bands[i];
 
 			if (HDD_NL80211_BAND_2GHZ == i &&
-			    BAND_5G == band_capability) {
+			    BIT(REG_BAND_5G) == band_capability) {
 				/* 5G only */
 #ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
 				/* Enable social channels for P2P */
@@ -15897,7 +16048,7 @@ static void wlan_hdd_update_band_cap_in_wiphy(struct hdd_context *hdd_ctx)
 					IEEE80211_CHAN_DISABLED;
 				continue;
 			} else if (HDD_NL80211_BAND_5GHZ == i &&
-				   BAND_2G == band_capability) {
+				   BIT(REG_BAND_2G) == band_capability) {
 				/* 2G only */
 				band->channels[j].flags |=
 					IEEE80211_CHAN_DISABLED;
@@ -23469,7 +23620,8 @@ static void hdd_update_chan_info(struct hdd_context *hdd_ctx,
 #endif
 
 #if defined(WLAN_FEATURE_FILS_SK) &&\
-	defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT) &&\
+	(defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT) ||\
+		(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))) &&\
 	(defined(CFG80211_UPDATE_CONNECT_PARAMS) ||\
 		(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)))
 
