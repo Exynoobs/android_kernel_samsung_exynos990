@@ -2690,25 +2690,6 @@
 				android {
 					compatible = "android,firmware";
 					phandle = <0x75>;
-
-					vbmeta {
-						compatible = "android,vbmeta";
-						parts = "vbmeta,boot,system,vendor";
-					};
-
-					fstab {
-						compatible = "android,fstab";
-
-						vendor {
-							compatible = "android,vendor";
-							dev = "/dev/block/platform/13100000.ufs/by-name/vendor";
-							type = "ext4";
-							mnt_flags = "ro";
-							fsmgr_flags = "wait,avb";
-							status = "disabled";
-							phandle = <0x76>;
-						};
-					};
 				};
 			};
 		};
