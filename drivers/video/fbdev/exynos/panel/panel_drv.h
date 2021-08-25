@@ -165,19 +165,20 @@ struct panel_regulator {
 
 struct cmd_set {
 	u8 cmd_id;
-	u8 offset;
+	u32 offset;
 	const u8 *buf;
 	int size;
 };
 
 #define DSIM_OPTION_WAIT_TX_DONE	(1U << 0)
 #define DSIM_OPTION_POINT_GPARA		(1U << 1)
+#define DSIM_OPTION_2BYTE_GPARA		(1U << 2)
 
 struct mipi_drv_ops {
-	int (*read)(u32 id, u8 addr, u8 ofs, u8 *buf, int size, u32 option);
-	int (*write)(u32 id, u8 cmd_id, const u8 *cmd, u8 ofs, int size, u32 option);
+	int (*read)(u32 id, u8 addr, u32 ofs, u8 *buf, int size, u32 option);
+	int (*write)(u32 id, u8 cmd_id, const u8 *cmd, u32 ofs, int size, u32 option);
 	int (*write_table)(u32 id, const struct cmd_set *cmd, int size, u32 option);
-	int (*sr_write)(u32 id, u8 cmd_id, const u8 *cmd, u8 ofs, int size, u32 option);
+	int (*sr_write)(u32 id, u8 cmd_id, const u8 *cmd, u32 ofs, int size, u32 option);
 	enum dsim_state(*get_state)(u32 id);
 	void (*parse_dt)(struct device_node *node, EXYNOS_PANEL_INFO *lcd_info);
 	EXYNOS_PANEL_INFO *(*get_lcd_info)(u32 id);

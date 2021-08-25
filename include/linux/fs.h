@@ -664,6 +664,7 @@ struct inode {
 	};
 	atomic64_t		i_version;
 	atomic64_t		i_dirty_page_count; /* temp variable to count dirty pages */
+	atomic64_t		i_sequence; /* see futex */
 	atomic_t		i_count;
 	atomic_t		i_dio_count;
 	atomic_t		i_writecount;

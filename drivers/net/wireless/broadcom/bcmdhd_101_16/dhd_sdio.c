@@ -8422,8 +8422,13 @@ dhdsdio_download_firmware(struct dhd_bus *bus, osl_t *osh, void *sdh)
 	dhdsdio_clkctl(bus, CLK_AVAIL, FALSE);
 
 	ret = _dhdsdio_download_firmware(bus);
-
+#ifdef BCM43013_CHIP
+	if (ret < 0) {
+		dhdsdio_clkctl(bus, CLK_SDONLY, FALSE);
+	}
+#else /* BCM43013_CHIP */
 	dhdsdio_clkctl(bus, CLK_SDONLY, FALSE);
+#endif /* BCM43013_CHIP */
 
 	DHD_OS_WAKE_UNLOCK(bus->dhd);
 	return ret;
@@ -8741,6 +8746,10 @@ dhdsdio_download_code_file(struct dhd_bus *bus, char *pfw_path)
 	int buf_offset = 0, residual_len = 0;
 
 	DHD_ERROR(("%s: download firmware %s\n", __FUNCTION__, pfw_path));
+
+	/* check if CR4/CA7 */
+	store_reset = (si_setcore(bus->sih, ARMCR4_CORE_ID, 0) ||
+		si_setcore(bus->sih, ARMCA7_CORE_ID, 0));
 
 	bcmerror = dhd_os_get_img_fwreq(&fw, bus->fw_path);
 	if (bcmerror < 0) {

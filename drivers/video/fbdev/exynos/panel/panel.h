@@ -380,7 +380,7 @@ struct pktinfo {
 	char *name;
 	u32 addr;
 	u8 *data;
-	u8 offset;
+	u32 offset;
 	u32 dlen;
 	struct pkt_update_info *pktui;
 	u32 nr_pktui;
@@ -458,6 +458,9 @@ struct rdinfo RDINFO(_name_) = RDINFO_INIT(_name_, _type_, _addr_, _offset_, _le
 	.offset = (_offset_),						\
 	.rditbl = (_rditbl_),						\
 }
+
+#define DECLARE_RESUI(_name_)	\
+struct res_update_info RESUI(_name_)[]
 
 #define DEFINE_RESUI(_name_, _rditbl_, _offset_)	\
 struct res_update_info RESUI(_name_)[] =			\
@@ -826,6 +829,8 @@ enum PANEL_SEQ {
 	PANEL_MASK_LAYER_STOP_DIMMING_SEQ,
 	PANEL_MASK_LAYER_BEFORE_SEQ,
 	PANEL_MASK_LAYER_AFTER_SEQ,
+	PANEL_MASK_LAYER_ENTER_BR_SEQ,
+	PANEL_MASK_LAYER_EXIT_BR_SEQ,
 #endif
 #ifdef CONFIG_SUPPORT_BRIGHTDOT_TEST
 	PANEL_BRIGHTDOT_TEST_SEQ,
@@ -862,6 +867,7 @@ struct brt_map {
 #define DDI_SUPPORT_WRITE_GPARA	(1U << 0)
 #define DDI_SUPPORT_READ_GPARA	(1U << 1)
 #define DDI_SUPPORT_POINT_GPARA	(1U << 2)
+#define DDI_SUPPORT_2BYTE_GPARA	(1U << 3)
 
 enum {
 	PN_COMP_TYPE_NONE,
@@ -1414,11 +1420,11 @@ int get_panel_resource_size(struct resinfo *res);
 int panel_resource_update(struct panel_device *panel, struct resinfo *res);
 int panel_resource_update_by_name(struct panel_device *panel, char *name);
 int panel_dumpinfo_update(struct panel_device *panel, struct dumpinfo *info);
-int panel_rx_nbytes(struct panel_device *panel, u32 type, u8 *buf, u8 addr, u8 pos, u32 len);
-int panel_tx_nbytes(struct panel_device *panel,	u32 type, u8 *buf, u8 addr, u8 pos, u32 len);
+int panel_rx_nbytes(struct panel_device *panel, u32 type, u8 *buf, u8 addr, u32 pos, u32 len);
+int panel_tx_nbytes(struct panel_device *panel,	u32 type, u8 *buf, u8 addr, u32 pos, u32 len);
 u16 calc_checksum_16bit(u8 *arr, int size);
 
-int panel_verify_tx_packet(struct panel_device *panel, u8 *src, u8 ofs, u8 len);
+int panel_verify_tx_packet(struct panel_device *panel, u8 *src, u32 ofs, u8 len);
 
 int panel_set_key(struct panel_device *panel, int level, bool on);
 struct pktinfo *alloc_static_packet(char *name, u32 type, u8 *data, u32 dlen);

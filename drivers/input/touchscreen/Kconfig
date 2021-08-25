@@ -1312,4 +1312,5 @@ source "drivers/input/touchscreen/sec_ts/y79a_c/Kconfig"
 source "drivers/input/touchscreen/sec_ts/y761_sub/Kconfig"
 source "drivers/input/touchscreen/stm/fts9cu80f/Kconfig"
 source "drivers/input/touchscreen/zinitix/zt7650/Kconfig"
+source "drivers/input/touchscreen/stm/fts5cu56a/Kconfig"
 endif

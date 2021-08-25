@@ -707,7 +707,7 @@
 			};
 
 			ea8076_ddi {
-				id = <0x80083>;
+				id = <0x800083>;
 				mode = <0x02>;
 				resolution = <0x438 0x960>;
 				size = <0x43 0x96>;
@@ -740,7 +740,7 @@
 			};
 
 			ea8079_ddi {
-				id = <0x80040>;
+				id = <0x800040>;
 				mode = <0x02>;
 				resolution = <0x438 0x960>;
 				size = <0x43 0x96>;
@@ -770,6 +770,39 @@
 				dynamic_freq = <0x0c 0x0d 0x0e>;
 				color_mode = <0x00 0x07 0x09>;
 				phandle = <0x3b>;
+			};
+
+			s6e3fc3_ddi {
+				id = <0x805080>;
+				mode = <0x02>;
+				resolution = <0x438 0x960>;
+				size = <0x43 0x96>;
+				timing,refresh = <0x78>;
+				timing,h-porch = <0x02 0x02 0x02>;
+				timing,v-porch = <0x0f 0x03 0x01>;
+				timing,dsi-hs-clk = <0x456>;
+				timing,pmsk = <0x02 0xab 0x02 0xc4ec 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00>;
+				timing,dsi-escape-clk = <0x14>;
+				mic_en = <0x00>;
+				mic_ratio = <0x02>;
+				mic_ver = <0x02>;
+				type_of_ddi = <0x00>;
+				dsc_en = <0x01>;
+				dsc_cnt = <0x02>;
+				dsc_slice_num = <0x02>;
+				dsc_slice_h = <0x28>;
+				data_lane = <0x04>;
+				cmd_underrun_cnt = <0x1d46>;
+				default_mode = <0x00>;
+				display_mode = <0x438 0x960 0x78 0x6ea 0x01 0x21c 0x28 0x438 0x960 0x3c 0x1d46 0x01 0x21c 0x28>;
+				hdr_num = <0x02>;
+				hdr_type = <0x02 0x03 0x00 0x00>;
+				hdr_max_luma = <0x3d0900>;
+				hdr_max_avg_luma = <0x124f80>;
+				hdr_min_luma = <0x05>;
+				dynamic_freq = <0x0c 0x0d 0x0e>;
+				color_mode = <0x00 0x07 0x09>;
+				phandle = <0x3c>;
 			};
 		};
 	};
@@ -804,7 +837,7 @@
 				id = <0x00>;
 				mclk_ch = <0x00>;
 				sensor_i2c_ch = <0x00>;
-				phandle = <0x3c>;
+				phandle = <0x3d>;
 
 				vc_extra {
 					stat0;
@@ -1153,7 +1186,7 @@
 				id = <0x02>;
 				mclk_ch = <0x01>;
 				sensor_i2c_ch = <0x02>;
-				phandle = <0x3d>;
+				phandle = <0x3e>;
 
 				vc_extra {
 					stat0;
@@ -1497,7 +1530,7 @@
 				mclk_ch = <0x04>;
 				sensor_i2c_ch = <0x01>;
 				sensor_i2c_addr = <0x36>;
-				phandle = <0x3e>;
+				phandle = <0x3f>;
 
 				vc_extra {
 					stat0;
@@ -2351,7 +2384,7 @@
 			sensor1-ch-mode0 {
 				reg = <0x170c2000 0x100 0x170c2400 0x100 0x170c2100 0x100 0x170c2400 0x100 0x170c2200 0x100 0x170c2400 0x100 0x170c2300 0x100 0x170c2400 0x100>;
 				mux_reg = <0x17020418 0x04>;
-				phandle = <0x3f>;
+				phandle = <0x40>;
 			};
 		};
 	};
@@ -2377,7 +2410,7 @@
 			sensor2-ch-mode0 {
 				reg = <0x170c3000 0x100 0x170c3400 0x100 0x170c3100 0x100 0x170c3400 0x100 0x170c3200 0x100 0x170c3400 0x100 0x170c3300 0x100 0x170c3400 0x100>;
 				mux_reg = <0x1702041c 0x04>;
-				phandle = <0x40>;
+				phandle = <0x41>;
 			};
 		};
 	};
@@ -2491,7 +2524,7 @@
 
 				android {
 					compatible = "android,firmware";
-					phandle = <0x41>;
+					phandle = <0x42>;
 
 					vbmeta {
 						compatible = "android,vbmeta";
@@ -2508,7 +2541,7 @@
 							mnt_flags = "ro";
 							fsmgr_flags = "wait,avb";
 							status = "okay";
-							phandle = <0x42>;
+							phandle = <0x43>;
 						};
 					};
 				};
@@ -2691,7 +2724,7 @@
 			audio_cpu_dummy {
 				compatible = "samsung,dummy-cpu";
 				#sound-dai-cells = <0x00>;
-				phandle = <0x43>;
+				phandle = <0x44>;
 			};
 
 			fixedregulator@1 {
@@ -3949,7 +3982,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x02>;
-						phandle = <0x44>;
+						phandle = <0x45>;
 					};
 
 					BUCK2M {
@@ -3959,7 +3992,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x02>;
-						phandle = <0x45>;
+						phandle = <0x46>;
 					};
 
 					BUCK3M {
@@ -3969,7 +4002,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x02>;
-						phandle = <0x46>;
+						phandle = <0x47>;
 					};
 
 					BUCK5M {
@@ -3979,7 +4012,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x02>;
-						phandle = <0x47>;
+						phandle = <0x48>;
 					};
 
 					BUCK6M {
@@ -3989,7 +4022,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x48>;
+						phandle = <0x49>;
 					};
 
 					BUCK7M {
@@ -3999,7 +4032,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x02>;
-						phandle = <0x49>;
+						phandle = <0x4a>;
 					};
 
 					BUCK8M {
@@ -4009,7 +4042,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x02>;
-						phandle = <0x4a>;
+						phandle = <0x4b>;
 					};
 
 					BUCK9M {
@@ -4019,7 +4052,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x4b>;
+						phandle = <0x4c>;
 					};
 
 					BUCK10M {
@@ -4029,7 +4062,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x4c>;
+						phandle = <0x4d>;
 					};
 
 					BUCK11M {
@@ -4039,7 +4072,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x4d>;
+						phandle = <0x4e>;
 					};
 
 					BUCK12M {
@@ -4049,7 +4082,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x4e>;
+						phandle = <0x4f>;
 					};
 
 					LDO1M {
@@ -4059,7 +4092,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x4f>;
+						phandle = <0x50>;
 					};
 
 					LDO2M {
@@ -4068,7 +4101,7 @@
 						regulator-max-microvolt = <0x325aa0>;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x50>;
+						phandle = <0x51>;
 					};
 
 					LDO3M {
@@ -4078,7 +4111,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x51>;
+						phandle = <0x52>;
 					};
 
 					LDO4M {
@@ -4088,7 +4121,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x52>;
+						phandle = <0x53>;
 					};
 
 					LDO5M {
@@ -4098,7 +4131,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x53>;
+						phandle = <0x54>;
 					};
 
 					LDO6M {
@@ -4108,7 +4141,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x54>;
+						phandle = <0x55>;
 					};
 
 					LDO9M {
@@ -4118,7 +4151,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x55>;
+						phandle = <0x56>;
 					};
 
 					LDO10M {
@@ -4128,7 +4161,7 @@
 						regulator-boot-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x56>;
+						phandle = <0x57>;
 					};
 
 					LDO11M {
@@ -4138,7 +4171,7 @@
 						regulator-boot-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x57>;
+						phandle = <0x58>;
 					};
 
 					LDO12M {
@@ -4148,7 +4181,7 @@
 						regulator-boot-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x58>;
+						phandle = <0x59>;
 					};
 
 					LDO15M {
@@ -4157,7 +4190,7 @@
 						regulator-max-microvolt = <0x325aa0>;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x59>;
+						phandle = <0x5a>;
 					};
 
 					LDO16M {
@@ -4167,7 +4200,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x5a>;
+						phandle = <0x5b>;
 					};
 
 					LDO17M {
@@ -4186,7 +4219,7 @@
 						regulator-max-microvolt = <0x13d620>;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x5b>;
+						phandle = <0x5c>;
 					};
 
 					LDO19M {
@@ -4196,7 +4229,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x5c>;
+						phandle = <0x5d>;
 					};
 
 					LDO20M {
@@ -4206,7 +4239,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x5d>;
+						phandle = <0x5e>;
 					};
 
 					LDO21M {
@@ -4216,7 +4249,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x5e>;
+						phandle = <0x5f>;
 					};
 
 					LDO22M {
@@ -4226,7 +4259,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x5f>;
+						phandle = <0x60>;
 					};
 
 					LDO23M {
@@ -4235,7 +4268,7 @@
 						regulator-max-microvolt = <0x13d620>;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x60>;
+						phandle = <0x61>;
 					};
 
 					LDO24M {
@@ -4244,7 +4277,7 @@
 						regulator-max-microvolt = <0x325aa0>;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x61>;
+						phandle = <0x62>;
 					};
 
 					LDO25M {
@@ -4253,7 +4286,7 @@
 						regulator-max-microvolt = <0x2191c0>;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x62>;
+						phandle = <0x63>;
 					};
 
 					LDO26M {
@@ -4263,7 +4296,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x63>;
+						phandle = <0x64>;
 					};
 
 					LDO27M {
@@ -4273,7 +4306,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x64>;
+						phandle = <0x65>;
 					};
 
 					LDO28M {
@@ -4283,7 +4316,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x65>;
+						phandle = <0x66>;
 					};
 
 					LDO29M {
@@ -4293,7 +4326,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x66>;
+						phandle = <0x67>;
 					};
 				};
 			};
@@ -4333,7 +4366,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x67>;
+						phandle = <0x68>;
 					};
 
 					BUCK2S {
@@ -4343,7 +4376,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x68>;
+						phandle = <0x69>;
 					};
 
 					BUCK3S {
@@ -4353,7 +4386,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x69>;
+						phandle = <0x6a>;
 					};
 
 					BUCK4S {
@@ -4363,7 +4396,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x1770>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x6a>;
+						phandle = <0x6b>;
 					};
 
 					LDO1S {
@@ -4373,7 +4406,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x6b>;
+						phandle = <0x6c>;
 					};
 
 					LDO2S {
@@ -4383,7 +4416,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x6c>;
+						phandle = <0x6d>;
 					};
 
 					LDO3S {
@@ -4393,7 +4426,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x6d>;
+						phandle = <0x6e>;
 					};
 
 					LDO4S {
@@ -4403,7 +4436,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x03>;
-						phandle = <0x6e>;
+						phandle = <0x6f>;
 					};
 
 					LDO5S {
@@ -4413,7 +4446,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x6f>;
+						phandle = <0x70>;
 					};
 
 					LDO6S {
@@ -4423,7 +4456,7 @@
 						regulator-always-on;
 						regulator-ramp-delay = <0x2ee0>;
 						regulator-initial-mode = <0x01>;
-						phandle = <0x70>;
+						phandle = <0x71>;
 					};
 				};
 			};
@@ -4453,14 +4486,14 @@
 						regulator-max-microvolt = <0x19f0a0>;
 						regulator-always-on;
 						regulator-boot-on;
-						phandle = <0x71>;
+						phandle = <0x72>;
 					};
 
 					s2mpb02-buck2 {
 						regulator-name = "S2MPB02_BUCK2";
 						regulator-min-microvolt = <0x100590>;
 						regulator-max-microvolt = <0x100590>;
-						phandle = <0x72>;
+						phandle = <0x73>;
 					};
 
 					s2mpb02-bb {
@@ -4469,7 +4502,7 @@
 						regulator-max-microvolt = <0x3d0900>;
 						regulator-always-on;
 						regulator-boot-on;
-						phandle = <0x73>;
+						phandle = <0x74>;
 					};
 
 					s2mpb02-ldo1 {
@@ -4477,35 +4510,35 @@
 						regulator-min-microvolt = <0xdbba0>;
 						regulator-max-microvolt = <0xdbba0>;
 						regulator-always-on;
-						phandle = <0x74>;
+						phandle = <0x75>;
 					};
 
 					s2mpb02-ldo2 {
 						regulator-name = "S2MPB02_LDO2";
 						regulator-min-microvolt = <0xf4240>;
 						regulator-max-microvolt = <0xf4240>;
-						phandle = <0x75>;
+						phandle = <0x76>;
 					};
 
 					s2mpb02-ldo3 {
 						regulator-name = "S2MPB02_LDO3";
 						regulator-min-microvolt = <0x124f80>;
 						regulator-max-microvolt = <0x124f80>;
-						phandle = <0x76>;
+						phandle = <0x77>;
 					};
 
 					s2mpb02-ldo4 {
 						regulator-name = "S2MPB02_LDO4";
 						regulator-min-microvolt = <0x124f80>;
 						regulator-max-microvolt = <0x124f80>;
-						phandle = <0x77>;
+						phandle = <0x78>;
 					};
 
 					s2mpb02-ldo5 {
 						regulator-name = "S2MPB02_LDO5";
 						regulator-min-microvolt = <0x124f80>;
 						regulator-max-microvolt = <0x124f80>;
-						phandle = <0x78>;
+						phandle = <0x79>;
 					};
 
 					s2mpb02-ldo6 {
@@ -4514,21 +4547,21 @@
 						regulator-max-microvolt = <0x1b7740>;
 						regulator-always-on;
 						regulator-boot-on;
-						phandle = <0x79>;
+						phandle = <0x7a>;
 					};
 
 					s2mpb02-ldo7 {
 						regulator-name = "S2MPB02_LDO7";
 						regulator-min-microvolt = <0x1b7740>;
 						regulator-max-microvolt = <0x1b7740>;
-						phandle = <0x7a>;
+						phandle = <0x7b>;
 					};
 
 					s2mpb02-ldo8 {
 						regulator-name = "S2MPB02_LDO8";
 						regulator-min-microvolt = <0x1b7740>;
 						regulator-max-microvolt = <0x1b7740>;
-						phandle = <0x7b>;
+						phandle = <0x7c>;
 					};
 
 					s2mpb02-ldo9 {
@@ -4537,14 +4570,14 @@
 						regulator-max-microvolt = <0x1b7740>;
 						regulator-always-on;
 						regulator-boot-on;
-						phandle = <0x7c>;
+						phandle = <0x7d>;
 					};
 
 					s2mpb02-ldo10 {
 						regulator-name = "S2MPB02_LDO10";
 						regulator-min-microvolt = <0x1b7740>;
 						regulator-max-microvolt = <0x1b7740>;
-						phandle = <0x7d>;
+						phandle = <0x7e>;
 					};
 
 					s2mpb02-ldo11 {
@@ -4553,49 +4586,49 @@
 						regulator-max-microvolt = <0x2ab980>;
 						regulator-always-on;
 						regulator-boot-on;
-						phandle = <0x7e>;
+						phandle = <0x7f>;
 					};
 
 					s2mpb02-ldo12 {
 						regulator-name = "S2MPB02_LDO12";
 						regulator-min-microvolt = <0x2ab980>;
 						regulator-max-microvolt = <0x2ab980>;
-						phandle = <0x7f>;
+						phandle = <0x80>;
 					};
 
 					s2mpb02-ldo13 {
 						regulator-name = "S2MPB02_LDO13";
 						regulator-min-microvolt = <0x2c4020>;
 						regulator-max-microvolt = <0x2c4020>;
-						phandle = <0x80>;
+						phandle = <0x81>;
 					};
 
 					s2mpb02-ldo14 {
 						regulator-name = "S2MPB02_LDO14";
 						regulator-min-microvolt = <0x2ab980>;
 						regulator-max-microvolt = <0x2ab980>;
-						phandle = <0x81>;
+						phandle = <0x82>;
 					};
 
 					s2mpb02-ldo15 {
 						regulator-name = "S2MPB02_LDO15";
 						regulator-min-microvolt = <0x2ab980>;
 						regulator-max-microvolt = <0x2ab980>;
-						phandle = <0x82>;
+						phandle = <0x83>;
 					};
 
 					s2mpb02-ldo16 {
 						regulator-name = "S2MPB02_LDO16";
 						regulator-min-microvolt = <0x2ab980>;
 						regulator-max-microvolt = <0x2ab980>;
-						phandle = <0x83>;
+						phandle = <0x84>;
 					};
 
 					s2mpb02-ldo17 {
 						regulator-name = "S2MPB02_LDO17";
 						regulator-min-microvolt = <0x2d0370>;
 						regulator-max-microvolt = <0x2d0370>;
-						phandle = <0x84>;
+						phandle = <0x85>;
 					};
 
 					s2mpb02-ldo18 {
@@ -4604,7 +4637,7 @@
 						regulator-max-microvolt = <0x325aa0>;
 						regulator-always-on;
 						regulator-boot-on;
-						phandle = <0x85>;
+						phandle = <0x86>;
 					};
 				};
 			};
@@ -5137,6 +5170,7 @@
 		s6e3fa0_vid = "/fragment@lcd/__overlay__/s6e3fa0_fhd_vid";
 		ea8076 = "/fragment@lcd/__overlay__/ea8076_ddi";
 		ea8079 = "/fragment@lcd/__overlay__/ea8079_ddi";
+		s6e3fc3 = "/fragment@lcd/__overlay__/s6e3fc3_ddi";
 		is_sensor_gm1sp = "/fragment@camera/__overlay__/is_sensor_gm1sp@43";
 		is_sensor_5e9 = "/fragment@camera/__overlay__/is_sensor_5e9@41";
 		is_sensor_4h5yc = "/fragment@camera/__overlay__/is_sensor_4h5yc@24";
@@ -5403,6 +5437,10 @@
 				};
 
 				ea8079_ddi {
+					dynamic_freq = <0x00 0x04 0x08>;
+				};
+
+				s6e3fc3_ddi {
 					dynamic_freq = <0x00 0x04 0x08>;
 				};
 			};

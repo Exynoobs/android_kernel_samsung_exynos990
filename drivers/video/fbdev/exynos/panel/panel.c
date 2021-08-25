@@ -872,7 +872,7 @@ static int panel_spi_read_data(struct panel_device *panel,
 #endif
 
 static int panel_dsi_write_data(struct panel_device *panel,
-		u8 cmd_id, const u8 *buf, u8 ofs, int size, bool block)
+		u8 cmd_id, const u8 *buf, u32 ofs, int size, bool block)
 {
 	u32 option = 0;
 
@@ -882,6 +882,9 @@ static int panel_dsi_write_data(struct panel_device *panel,
 	if ((panel->panel_data.ddi_props.gpara &
 					DDI_SUPPORT_POINT_GPARA))
 		option |= DSIM_OPTION_POINT_GPARA;
+	if ((panel->panel_data.ddi_props.gpara &
+					DDI_SUPPORT_2BYTE_GPARA))
+		option |= DSIM_OPTION_2BYTE_GPARA;
 
 	if (block)
 		option |= DSIM_OPTION_WAIT_TX_DONE;
@@ -900,6 +903,9 @@ static int panel_dsi_write_table(struct panel_device *panel,
 	if ((panel->panel_data.ddi_props.gpara &
 					DDI_SUPPORT_POINT_GPARA))
 		option |= DSIM_OPTION_POINT_GPARA;
+	if ((panel->panel_data.ddi_props.gpara &
+					DDI_SUPPORT_2BYTE_GPARA))
+		option |= DSIM_OPTION_2BYTE_GPARA;
 
 	if (block)
 		option |= DSIM_OPTION_WAIT_TX_DONE;
@@ -1032,10 +1038,10 @@ static int panel_cmdq_push(struct panel_device *panel,
 }
 
 static int panel_dsi_write_cmd(struct panel_device *panel,
-		u8 cmd_id, const u8 *buf, u8 ofs, int size, u32 option)
+		u8 cmd_id, const u8 *buf, u32 ofs, int size, u32 option)
 {
-	int ret;
-	u8 gpara[3] = { 0xB0, ofs, buf ? buf[0] : 0x00 };
+	int ret, gpara_len = 1;
+	u8 gpara[4] = { 0xB0, 0x00, };
 	bool block = (option & PKT_OPTION_CHECK_TX_DONE) ? true : false;
 
 	mutex_lock(&panel->cmdq.lock);
@@ -1051,9 +1057,20 @@ static int panel_dsi_write_cmd(struct panel_device *panel,
 	}
 
 	if (ofs > 0) {
-		ret = panel_cmdq_push(panel, MIPI_DSI_WR_GEN_CMD, gpara,
-				(panel->panel_data.ddi_props.gpara &
-				 DDI_SUPPORT_POINT_GPARA) ? 3 : 2);
+		/* gpara 16bit offset */
+		if ((panel->panel_data.ddi_props.gpara &
+					DDI_SUPPORT_2BYTE_GPARA))
+			gpara[gpara_len++] = (ofs >> 8) & 0xFF;
+
+		gpara[gpara_len++] = ofs & 0xFF;
+
+		/* pointing gpara */
+		if ((panel->panel_data.ddi_props.gpara &
+					DDI_SUPPORT_POINT_GPARA))
+			gpara[gpara_len++] = buf ? buf[0] : 0x00;
+
+		ret = panel_cmdq_push(panel, MIPI_DSI_WR_GEN_CMD,
+				gpara, gpara_len);
 		if (ret < 0) {
 			panel_err("failed to panel_cmdq_push %d\n", ret);
 			mutex_unlock(&panel->cmdq.lock);
@@ -1083,7 +1100,7 @@ static int panel_dsi_write_cmd(struct panel_device *panel,
 }
 
 static int panel_dsi_sr_write_data(struct panel_device *panel,
-		u8 cmd_id, const u8 *buf, u8 ofs, int size, u32 option)
+		u8 cmd_id, const u8 *buf, u32 ofs, int size, u32 option)
 {
 #ifdef CONFIG_SUPPORT_DISPLAY_PROFILER
 	struct profiler_cmdlog_data pp;
@@ -1114,7 +1131,7 @@ static int panel_dsi_sr_write_data(struct panel_device *panel,
 #define DSI_IMG_FIFO_SIZE (2048)
 
 static int panel_dsi_write_img(struct panel_device *panel,
-		u8 cmd_id, const u8 *buf, u8 ofs, int size, u32 option)
+		u8 cmd_id, const u8 *buf, u32 ofs, int size, u32 option)
 {
 	u8 c_start = 0, c_next = 0;
 	u8 cmdbuf[DSI_IMG_FIFO_SIZE];
@@ -1192,7 +1209,7 @@ static int panel_dsi_write_img(struct panel_device *panel,
 }
 
 static int panel_dsi_fast_write_mem(struct panel_device *panel,
-		u8 cmd_id, const u8 *buf, u8 ofs, int size, u32 option)
+		u8 cmd_id, const u8 *buf, u32 ofs, int size, u32 option)
 {
 	int ret;
 
@@ -1209,7 +1226,7 @@ static int panel_dsi_fast_write_mem(struct panel_device *panel,
 }
 
 static int panel_dsi_read_data(struct panel_device *panel,
-		u8 addr, u8 ofs, u8 *buf, int size)
+		u8 addr, u32 ofs, u8 *buf, int size)
 {
 	u32 option = 0;
 	int ret;
@@ -1223,6 +1240,9 @@ static int panel_dsi_read_data(struct panel_device *panel,
 	if ((panel->panel_data.ddi_props.gpara &
 					DDI_SUPPORT_POINT_GPARA))
 		option |= DSIM_OPTION_POINT_GPARA;
+	if ((panel->panel_data.ddi_props.gpara &
+					DDI_SUPPORT_2BYTE_GPARA))
+		option |= DSIM_OPTION_2BYTE_GPARA;
 
 	mutex_lock(&panel->cmdq.lock);
 	panel_cmdq_flush(panel);
@@ -1334,7 +1354,7 @@ int panel_set_key(struct panel_device *panel, int level, bool on)
 	return 0;
 }
 
-int panel_verify_tx_packet(struct panel_device *panel, u8 *src, u8 ofs, u8 len)
+int panel_verify_tx_packet(struct panel_device *panel, u8 *src, u32 ofs, u8 len)
 {
 	u8 *buf;
 	int i, ret = 0;
@@ -1353,8 +1373,7 @@ int panel_verify_tx_packet(struct panel_device *panel, u8 *src, u8 ofs, u8 len)
 	if (!buf)
 		return -ENOMEM;
 
-	//mutex_lock(&panel->op_lock);
-	panel_rx_nbytes(panel, DSI_PKT_TYPE_RD, buf, addr, 0, len - 1);
+	panel_rx_nbytes(panel, DSI_PKT_TYPE_RD, buf, addr, ofs, len - 1);
 	for (i = 0; i < len - 1; i++) {
 		if (buf[i] != data[i]) {
 			panel_warn("%02Xh[%2d] - (tx 0x%02X, rx 0x%02X) not match\n",
@@ -1365,7 +1384,6 @@ int panel_verify_tx_packet(struct panel_device *panel, u8 *src, u8 ofs, u8 len)
 					addr, i, data[i], buf[i]);
 		}
 	}
-	//mutex_unlock(&panel->op_lock);
 	kfree(buf);
 	return ret;
 }
@@ -2058,10 +2076,10 @@ int get_resource_size_by_name(struct panel_info *panel_data, char *name)
 
 #define MAX_READ_BYTES  (128)
 int panel_rx_nbytes(struct panel_device *panel,
-		u32 type, u8 *buf, u8 addr, u8 pos, u32 len)
+		u32 type, u8 *buf, u8 addr, u32 offset, u32 len)
 {
 	int ret, read_len, remained = len, index = 0;
-	static char gpara[] = {0xB0, 0x00};
+	u32 pos = offset;
 
 	if (panel == NULL) {
 		panel_err("panel is null\n");
@@ -2083,8 +2101,6 @@ int panel_rx_nbytes(struct panel_device *panel,
 	}
 #endif
 
-	gpara[1] = pos;
-
 	while (remained > 0) {
 		read_len = remained < MAX_READ_BYTES ? remained : MAX_READ_BYTES;
 		ret = 0;
@@ -2095,27 +2111,36 @@ int panel_rx_nbytes(struct panel_device *panel,
 				 * S6E3HA9 DDI NOT SUPPORTED GPARA FOR READ
 				 * SO TEMPORARY DISABLE GPRAR FOR READ FUNCTION
 				 */
-				char *temp_buf = kmalloc(gpara[1] + read_len, GFP_KERNEL);
+				char *temp_buf = kmalloc(pos + read_len, GFP_KERNEL);
 
 				if (!temp_buf)
 					return -EINVAL;
 
 				ret = panel_dsi_read_data(panel,
-						addr, 0, temp_buf, gpara[1] + read_len);
-				ret -= gpara[1];
-				memcpy(&buf[index], temp_buf + gpara[1], read_len);
+						addr, 0, temp_buf, pos + read_len);
+				ret -= pos;
+				memcpy(&buf[index], temp_buf + pos, read_len);
 				kfree(temp_buf);
 			} else {
 				ret = panel_dsi_read_data(panel,
-						addr, gpara[1], &buf[index], read_len);
+						addr, pos, &buf[index], read_len);
 			}
 #ifdef CONFIG_EXYNOS_DECON_LCD_SPI
 		} else if (type == SPI_PKT_TYPE_RD) {
-			if (gpara[1] != 0) {
+			if (pos != 0) {
+				int gpara_len = 1;
+				u8 gpara[4] = { 0xB0, 0x00 };
+
+				/* gpara 16bit offset */
+				if (panel->panel_data.ddi_props.gpara &
+						DSIM_OPTION_2BYTE_GPARA)
+					gpara[gpara_len++] = (pos >> 8) & 0xFF;
+				gpara[gpara_len++] = pos & 0xFF;
+
 				ret = panel_dsi_write_cmd(panel,
-						MIPI_DSI_WR_GEN_CMD, gpara, 0, ARRAY_SIZE(gpara), true);
-				if (ret != ARRAY_SIZE(gpara))
-					panel_err("failed to set gpara %d (ret %d)\n", gpara[1], ret);
+						MIPI_DSI_WR_GEN_CMD, gpara, 0, gpara_len, true);
+				if (ret != gpara_len)
+					panel_err("failed to set gpara %d (ret %d)\n", pos, ret);
 			}
 			ret = panel_spi_read_data(panel->spi,
 					addr, &buf[index], read_len);
@@ -2128,7 +2153,7 @@ int panel_rx_nbytes(struct panel_device *panel,
 			return -EINVAL;
 		}
 		index += read_len;
-		gpara[1] += read_len;
+		pos += read_len;
 		remained -= read_len;
 	}
 
@@ -2138,7 +2163,7 @@ int panel_rx_nbytes(struct panel_device *panel,
 }
 
 int panel_tx_nbytes(struct panel_device *panel,
-		u32 type, u8 *buf, u8 addr, u8 pos, u32 len)
+		u32 type, u8 *buf, u8 addr, u32 pos, u32 len)
 {
 	int ret;
 
@@ -2163,7 +2188,6 @@ int panel_tx_nbytes(struct panel_device *panel,
 	print_data(buf, len);
 	return ret;
 }
-
 
 int read_panel_id(struct panel_device *panel, u8 *buf)
 {

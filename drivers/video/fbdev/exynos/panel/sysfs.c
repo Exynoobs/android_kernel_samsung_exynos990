@@ -184,7 +184,7 @@ static ssize_t stm_store(struct device *dev,
 #endif
 
 unsigned char readbuf[256] = { 0xff, };
-int readreg, readpos, readlen;
+unsigned int readreg, readpos, readlen;
 
 static ssize_t read_mtp_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
@@ -192,8 +192,8 @@ static ssize_t read_mtp_show(struct device *dev,
 	int i, len;
 
 	mutex_lock(&sysfs_lock);
-	if (readreg <= 0 || readreg > 0xFF || readlen <= 0 || readlen > 255 ||
-			readpos < 0 || readpos > 255) {
+	if (readreg <= 0 || readreg > 0xFF || readlen <= 0 || readlen > 0xFF ||
+			readpos < 0 || readpos > 0xFFFF) {
 		mutex_unlock(&sysfs_lock);
 		return -EINVAL;
 	}
@@ -225,7 +225,7 @@ static ssize_t read_mtp_store(struct device *dev,
 	mutex_lock(&sysfs_lock);
 	ret = sscanf(buf, "%x %d %d", &readreg, &readpos, &readlen);
 	if (ret != 3 || readreg <= 0 || readreg > 0xFF ||
-			readlen <= 0 || readlen > 255 || readpos < 0 || readpos > 255) {
+			readlen <= 0 || readlen > 0xFF || readpos < 0 || readpos > 0xFFFF) {
 
 		ret = -EINVAL;
 		panel_info("%x %d %d\n", readreg, readpos, readlen);
@@ -656,11 +656,8 @@ static ssize_t window_type_show(struct device *dev,
 static ssize_t manufacture_code_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
-#ifdef CONFIG_PANEL_MAGNA_DDI
 	u8 code[6] = { 0, };
-#else
-	u8 code[5] = { 0, };
-#endif
+
 	struct panel_info *panel_data;
 	struct panel_device *panel = dev_get_drvdata(dev);
 
@@ -672,13 +669,14 @@ static ssize_t manufacture_code_show(struct device *dev,
 
 	resource_copy_by_name(panel_data, code, "code");
 
-#ifdef CONFIG_PANEL_MAGNA_DDI
-	snprintf(buf, PAGE_SIZE, "%02X%02X%02X%02X%02X%02X\n",
-		code[0], code[1], code[2], code[3], code[4], code[5]);
-#else
-	snprintf(buf, PAGE_SIZE, "%02X%02X%02X%02X%02X\n",
-		code[0], code[1], code[2], code[3], code[4]);
-#endif
+	if (get_resource_size_by_name(panel_data, "code") == 6) {
+		/* magna DDI has 6 bytes */
+		snprintf(buf, PAGE_SIZE, "%02X%02X%02X%02X%02X%02X\n",
+			code[0], code[1], code[2], code[3], code[4], code[5]);
+	} else {
+		snprintf(buf, PAGE_SIZE, "%02X%02X%02X%02X%02X\n",
+			code[0], code[1], code[2], code[3], code[4]);
+	}
 
 	return strlen(buf);
 }

@@ -3044,54 +3044,53 @@ static int panel_powerdown_cb(struct panel_device *panel)
 }
 #endif
 
-/* PANEL_SMOOTH_DIM_TIME : 10 frames time (60Hz) (smooth dim 8frames) */
-#define PANEL_SMOOTH_DIM_TIME ( 16700 * 10 )
-
 #ifdef CONFIG_SUPPORT_MASK_LAYER
 static int panel_set_mask_layer(struct panel_device *panel, void *arg)
 {
 	int ret = 0;
 	struct panel_bl_device *panel_bl = &panel->panel_bl;
 	struct mask_layer_data *req_data = (struct mask_layer_data *)arg;
-	u64 us_time_delta = 0;
 
 	if (req_data->req_mask_layer == MASK_LAYER_ON) {
 		if (req_data->trigger_time  == MASK_LAYER_TRIGGER_BEFORE) {
 
 			/*
 			 * W/A - During smooth dimming transition,
-			 * HBM entering can be faster than we expected.
 			 * Smooth dimming transition should stop here.
 			 */
 
 			/* 0. STOP SMOOTH DIMMING */
 			mutex_lock(&panel_bl->lock);
 			if (check_seqtbl_exist(&panel->panel_data, PANEL_MASK_LAYER_STOP_DIMMING_SEQ)) {
-				us_time_delta = ktime_us_delta(ktime_get(), panel_bl->props.last_br_update_time);
-
-				if ( us_time_delta < PANEL_SMOOTH_DIM_TIME ) {
-					panel_info("elapsed(%2lld.%03lldmsec) smooth dim force off.\n",
-						us_time_delta / 1000, us_time_delta % 1000);
-
-					panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_BEFORE_SEQ);
-					panel_bl->props.smooth_transition = SMOOTH_TRANS_OFF;
-					mutex_unlock(&panel_bl->lock);
-					panel_update_brightness(panel);
-					mutex_lock(&panel_bl->lock);
-					panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_STOP_DIMMING_SEQ);
-				}
+				panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_BEFORE_SEQ);
+				panel_bl->props.smooth_transition = SMOOTH_TRANS_OFF;
+				mutex_unlock(&panel_bl->lock);
+				panel_update_brightness(panel);
+				mutex_lock(&panel_bl->lock);
+				panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_STOP_DIMMING_SEQ);
 			}
 
 			/* 1. REQ ON + FRAME START BEFORE */
 			panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_BEFORE_SEQ);
 			panel_bl->props.mask_layer_br_hook = MASK_LAYER_HOOK_ON;
 			panel_bl->props.smooth_transition = SMOOTH_TRANS_OFF;
-			mutex_unlock(&panel_bl->lock);
-			panel_update_brightness(panel);
-			panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_AFTER_SEQ);
+			panel_bl->props.acl_opr = ACL_OPR_OFF;
+			panel_bl->props.acl_pwrsave = ACL_PWRSAVE_OFF;
+			if (check_seqtbl_exist(&panel->panel_data, PANEL_MASK_LAYER_ENTER_BR_SEQ)
+				&&(panel->state.cur_state != PANEL_STATE_ALPM)) {
+				panel_bl->props.brightness = panel_bl->props.mask_layer_br_target;
+				panel_info("mask_layer_br enter (%d)->(%d)\n",
+					panel_bl->bd->props.brightness, panel_bl->props.mask_layer_br_target);
+				panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_ENTER_BR_SEQ);
+				mutex_unlock(&panel_bl->lock);
+			} else {
+				mutex_unlock(&panel_bl->lock);
+				panel_update_brightness(panel);
+			}
+			if (check_seqtbl_exist(&panel->panel_data, PANEL_MASK_LAYER_AFTER_SEQ))
+				panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_AFTER_SEQ);
 
 		} else if  (req_data->trigger_time  == MASK_LAYER_TRIGGER_AFTER)  {
-
 			/* 2. REQ ON + FRAME START AFTER */
 			panel_bl->props.mask_layer_br_actual = panel_bl->props.mask_layer_br_target;
 			sysfs_notify(&panel->lcd->dev.kobj, NULL, "actual_mask_brightness");
@@ -3104,16 +3103,27 @@ static int panel_set_mask_layer(struct panel_device *panel, void *arg)
 			mutex_lock(&panel_bl->lock);
 			panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_BEFORE_SEQ);
 			panel_bl->props.mask_layer_br_hook = MASK_LAYER_HOOK_OFF;
-			mutex_unlock(&panel_bl->lock);
-			panel_update_brightness(panel);
-			panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_AFTER_SEQ);
+
+			if (check_seqtbl_exist(&panel->panel_data, PANEL_MASK_LAYER_EXIT_BR_SEQ)
+				&& (panel->state.cur_state != PANEL_STATE_ALPM)) {
+				panel_info("mask_layer_br exit (%d)->(%d)\n",
+					panel_bl->props.mask_layer_br_target, panel_bl->bd->props.brightness);
+				panel_bl->props.brightness = panel_bl->bd->props.brightness;
+
+				panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_EXIT_BR_SEQ);
+				mutex_unlock(&panel_bl->lock);
+			} else {
+				mutex_unlock(&panel_bl->lock);
+				panel_update_brightness(panel);
+			}
+			if (check_seqtbl_exist(&panel->panel_data, PANEL_MASK_LAYER_AFTER_SEQ))
+				panel_do_seqtbl_by_index(panel, PANEL_MASK_LAYER_AFTER_SEQ);
 		} else if  (req_data->trigger_time  == MASK_LAYER_TRIGGER_AFTER)  {
 
 			/* 4. REQ OFF + FRAME START AFTER */
 			panel_bl->props.smooth_transition = SMOOTH_TRANS_ON;
 			panel_bl->props.mask_layer_br_actual = 0;
 			sysfs_notify(&panel->lcd->dev.kobj, NULL, "actual_mask_brightness");
-
 		}
 	}
 	return ret;

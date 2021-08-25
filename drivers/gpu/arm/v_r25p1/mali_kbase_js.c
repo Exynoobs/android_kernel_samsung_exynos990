@@ -1197,6 +1197,7 @@ void kbase_js_update_ctx_priority(struct kbase_context *kctx)
 
 	kbase_js_set_ctx_priority(kctx, new_priority);
 }
+KBASE_EXPORT_TEST_API(kbase_js_update_ctx_priority);
 
 /**
  * js_add_start_rp() - Add an atom that starts a renderpass to the job scheduler

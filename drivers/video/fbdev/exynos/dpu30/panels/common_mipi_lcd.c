@@ -301,7 +301,7 @@ static void print_dsim_cmd(const struct exynos_dsim_cmd *cmd_set, int size)
 				cmd_set[i].data_len);
 }
 
-static int mipi_write(u32 id, u8 cmd_id, const u8 *cmd, u8 offset, int size, u32 option)
+static int mipi_write(u32 id, u8 cmd_id, const u8 *cmd, u32 offset, int size, u32 option)
 {
 	int ret, retry = 3;
 	unsigned long d0;
@@ -340,28 +340,26 @@ static int mipi_write(u32 id, u8 cmd_id, const u8 *cmd, u8 offset, int size, u32
 	mutex_lock(&cmd_lock);
 	while (--retry >= 0) {
 		if (offset > 0) {
-			if (option & DSIM_OPTION_POINT_GPARA) {
-				u8 gpara[3] = { 0xB0, offset, cmd[0] };
+			int gpara_len = 1;
+			u8 gpara[4] = { 0xB0, 0x00 };
 
-				if (panel_cmd_log_enabled(PANEL_CMD_LOG_DSI_TX))
-					print_tx(MIPI_DSI_DCS_LONG_WRITE, gpara, ARRAY_SIZE(gpara));
-				if (dsim_write_data(dsim, MIPI_DSI_DCS_LONG_WRITE,
-							(unsigned long)gpara, ARRAY_SIZE(gpara), false)) {
-					panel_err("failed to write gpara %d (retry %d)\n",
-							offset, retry);
-					continue;
-				}
-			} else {
-				u8 gpara[2] = { 0xB0, offset };
+			/* gpara 16bit offset */
+			if (option & DSIM_OPTION_2BYTE_GPARA)
+				gpara[gpara_len++] = (offset >> 8) & 0xFF;
 
-				if (panel_cmd_log_enabled(PANEL_CMD_LOG_DSI_TX))
-					print_tx(MIPI_DSI_DCS_SHORT_WRITE_PARAM, gpara, ARRAY_SIZE(gpara));
-				if (dsim_write_data(dsim,
-							MIPI_DSI_DCS_SHORT_WRITE_PARAM, 0xB0, offset, false)) {
-					panel_err("failed to write gpara %d (retry %d)\n",
-							offset, retry);
-					continue;
-				}
+			gpara[gpara_len++] = offset & 0xFF;
+
+			/* pointing gpara */
+			if (option & DSIM_OPTION_POINT_GPARA)
+				gpara[gpara_len++] = cmd[0];
+
+			if (panel_cmd_log_enabled(PANEL_CMD_LOG_DSI_TX))
+				print_tx(MIPI_DSI_DCS_LONG_WRITE, gpara, gpara_len);
+			if (dsim_write_data(dsim, MIPI_DSI_DCS_LONG_WRITE,
+						(unsigned long)gpara, gpara_len, false)) {
+				panel_err("failed to write gpara %d (retry %d)\n",
+						offset, retry);
+				continue;
 			}
 		}
 		if (panel_cmd_log_enabled(PANEL_CMD_LOG_DSI_TX))
@@ -493,7 +491,7 @@ error:
 	return ret;
 }
 
-static int mipi_sr_write(u32 id, u8 cmd_id, const u8 *cmd, u8 offset, int size, u32 option)
+static int mipi_sr_write(u32 id, u8 cmd_id, const u8 *cmd, u32 offset, int size, u32 option)
 {
 	int ret = 0;
 	struct dsim_device *dsim = get_dsim_drvdata(id);
@@ -531,7 +529,7 @@ static int mipi_sr_write(u32 id, u8 cmd_id, const u8 *cmd, u8 offset, int size, 
 	return ret;
 }
 
-static int mipi_read(u32 id, u8 addr, u8 offset, u8 *buf, int size, u32 option)
+static int mipi_read(u32 id, u8 addr, u32 offset, u8 *buf, int size, u32 option)
 {
 	int ret, retry = 3;
 	struct dsim_device *dsim = get_dsim_drvdata(id);
@@ -544,28 +542,26 @@ static int mipi_read(u32 id, u8 addr, u8 offset, u8 *buf, int size, u32 option)
 	mutex_lock(&cmd_lock);
 	while (--retry >= 0) {
 		if (offset > 0) {
-			if (option & DSIM_OPTION_POINT_GPARA) {
-				u8 gpara[3] = { 0xB0, offset, addr };
+			int gpara_len = 1;
+			u8 gpara[4] = { 0xB0, 0x00 };
 
-				if (panel_cmd_log_enabled(PANEL_CMD_LOG_DSI_TX))
-					print_tx(MIPI_DSI_DCS_LONG_WRITE, gpara, ARRAY_SIZE(gpara));
-				if (dsim_write_data(dsim, MIPI_DSI_DCS_LONG_WRITE,
-							(unsigned long)gpara, ARRAY_SIZE(gpara), false)) {
-					panel_err("failed to write gpara %d (retry %d)\n",
-							offset, retry);
-					continue;
-				}
-			} else {
-				u8 gpara[2] = { 0xB0, offset };
+			/* gpara 16bit offset */
+			if (option & DSIM_OPTION_2BYTE_GPARA)
+				gpara[gpara_len++] = (offset >> 8) & 0xFF;
 
-				if (panel_cmd_log_enabled(PANEL_CMD_LOG_DSI_TX))
-					print_tx(MIPI_DSI_DCS_SHORT_WRITE_PARAM, gpara, ARRAY_SIZE(gpara));
-				if (dsim_write_data(dsim,
-							MIPI_DSI_DCS_SHORT_WRITE_PARAM, 0xB0, offset, false)) {
-					panel_err("failed to write gpara %d (retry %d)\n",
-							offset, retry);
-					continue;
-				}
+			gpara[gpara_len++] = offset & 0xFF;
+
+			/* pointing gpara */
+			if (option & DSIM_OPTION_POINT_GPARA)
+				gpara[gpara_len++] = addr;
+
+			if (panel_cmd_log_enabled(PANEL_CMD_LOG_DSI_TX))
+				print_tx(MIPI_DSI_DCS_LONG_WRITE, gpara, gpara_len);
+			if (dsim_write_data(dsim, MIPI_DSI_DCS_LONG_WRITE,
+						(unsigned long)gpara, gpara_len, false)) {
+				panel_err("failed to write gpara %d (retry %d)\n",
+						offset, retry);
+				continue;
 			}
 		}
 
