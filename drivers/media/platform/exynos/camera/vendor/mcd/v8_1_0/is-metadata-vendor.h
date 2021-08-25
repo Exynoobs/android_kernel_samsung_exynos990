@@ -92,6 +92,11 @@ enum is_subscenario_id {
 	ISS_SUB_SCENARIO_8K_WDR_AUTO = 48,                                          /* TODO: 48: 8K Video 30fps (HDR Auto) */
 	ISS_SUB_SCENARIO_VIDEO_HIGH_SPEED_960FPS = 49,
 	ISS_SUB_SCENARIO_VIDEO_MERGED_HDR_AUTO = 50,                                /* 50: FHD 30fps (Video HDR Auto - AEB mode) */
+	ISS_SUB_SCENARIO_FHD_VIDEO_HDR10_WDR_AUTO_60FPS = 51,                       /* 51: FHD 60fps (Video HDR 10) */
+	ISS_SUB_SCENARIO_UHD_VIDEO_HDR10_WDR_AUTO_60FPS = 52,                       /* 52: UHD 60fps (Video HDR 10) */
+	ISS_SUB_SCENARIO_UHD_120FPS_SLOW_MOTION = 53,                               /* 53: UHD 120fps (Video slow motion) */
+	ISS_SUB_SCENARIO_VIDEO_FHD_AUTO_FPS = 54,                                   /* 54: FHD auto fps */
+	ISS_SUB_SCENARIO_MULTIVIEW_RECORDING = 55,                                  /* 55: MultiView recording */
 
 	ISS_SUB_SCENARIO_LIVE_OUTFOCUS_PREVIEW = 60,                                /* 60: Bokeh preview (HDR Off) */
 	ISS_SUB_SCENARIO_LIVE_OUTFOCUS_PREVIEW_WDR_AUTO = 61,                       /* 61: Bokeh preview (HDR Auto) */
