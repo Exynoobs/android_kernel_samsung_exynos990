@@ -31,6 +31,11 @@ static int sec_ts_input_open(struct input_dev *dev);
 static void sec_ts_input_close(struct input_dev *dev);
 #endif
 
+#if defined(CONFIG_SAMSUNG_TUI)
+static int stui_tsp_enter(void);
+static int stui_tsp_exit(void);
+#endif
+
 int sec_ts_read_information(struct sec_ts_data *ts);
 
 #if defined(CONFIG_DISPLAY_SAMSUNG) || defined(CONFIG_EXYNOS_DPU30)
@@ -2983,6 +2988,12 @@ static int sec_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 
 #ifdef CONFIG_SAMSUNG_TUI
 	tsp_info = ts;
+	ret = stui_set_info(stui_tsp_enter, stui_tsp_exit, STUI_TSP_TYPE_SLSI);
+	if (ret < 0) {
+			input_err(true, &tsp_info->client->dev,
+					"%s: Failed to register stui tsp type\n", __func__);
+	}
+	input_info(true, &tsp_info->client->dev, "%s: stui tsp vendor slsi register\n", __func__);
 #endif
 	/* need remove below resource @ remove driver */
 #if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
@@ -3881,7 +3892,7 @@ static int fb_notifier_callback(struct notifier_block *self,
 extern int stui_i2c_lock(struct i2c_adapter *adap);
 extern int stui_i2c_unlock(struct i2c_adapter *adap);
 
-int stui_tsp_enter(void)
+static int stui_tsp_enter(void)
 {
 	int ret = 0;
 
@@ -3904,7 +3915,7 @@ int stui_tsp_enter(void)
 	return 0;
 }
 
-int stui_tsp_exit(void)
+static int stui_tsp_exit(void)
 {
 	int ret = 0;
 
