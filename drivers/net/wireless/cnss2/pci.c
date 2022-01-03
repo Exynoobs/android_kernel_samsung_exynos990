@@ -1368,10 +1368,11 @@ static void cnss_pci_power_off_mhi(struct cnss_pci_data *pci_priv)
 	cnss_pci_set_mhi_state_bit(pci_priv, CNSS_MHI_RESUME);
 	cnss_pci_set_mhi_state_bit(pci_priv, CNSS_MHI_POWERING_OFF);
 
-	if (!pci_priv->pci_link_down_ind)
-		cnss_pci_set_mhi_state(pci_priv, CNSS_MHI_POWER_OFF);
-	else
+	if (pci_priv->pci_link_down_ind ||
+	mhi_get_mhi_state(pci_priv->mhi_ctrl) == MHI_STATE_M3)
 		cnss_pci_set_mhi_state(pci_priv, CNSS_MHI_FORCE_POWER_OFF);
+	else
+		cnss_pci_set_mhi_state(pci_priv, CNSS_MHI_POWER_OFF);
 }
 
 static void cnss_pci_deinit_mhi(struct cnss_pci_data *pci_priv)
