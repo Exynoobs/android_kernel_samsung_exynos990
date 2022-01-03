@@ -814,6 +814,10 @@ void is_sensor_ctl_frame_evt(struct is_device_sensor *device)
 			module_ctl->update_wb_gains = false;
 		}
 
+		ret = is_sensor_peri_s_test_pattern(device, sensor_ctrl);
+		if (ret < 0)
+			err("[%s] frame number(%d) set test pattern fail\n", __func__, applied_frame_number);
+
 		if (module_ctl->update_3hdr_stat || module_ctl->update_roi ||
 			module_ctl->update_tone || module_ctl->update_ev) {
 			ret = is_sensor_peri_s_sensor_stats(device, true, module_ctl, NULL);
