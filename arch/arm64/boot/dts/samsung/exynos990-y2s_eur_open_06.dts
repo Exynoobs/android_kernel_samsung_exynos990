@@ -7960,48 +7960,6 @@
 				exposed-mode = <0x3b 0x3c 0x3d 0x3e 0x3f 0x40 0x41 0x42 0x43 0x44 0x45 0x46>;
 				phandle = <0x58>;
 
-				hubble_panel_display_mode_1440x3200_60ns {
-					id = "1440x3200_60NS";
-					width = <0x5a0>;
-					height = <0xc80>;
-					refresh_rate = <0x3c>;
-					refresh_mode = <0x00>;
-					panel_refresh_rate = <0x3c>;
-					panel_refresh_mode = <0x00>;
-					panel_te_st = <0x00>;
-					panel_te_ed = <0x00>;
-					panel_te_sw_skip_count = <0x00>;
-					panel_te_hw_skip_count = <0x00>;
-					dsc_en = <0x01>;
-					dsc_cnt = <0x02>;
-					dsc_slice_num = <0x02>;
-					dsc_slice_w = <0x2d0>;
-					dsc_slice_h = <0x28>;
-					cmd_lp_ref = <0x1e6e>;
-					phandle = <0x3b>;
-				};
-
-				hubble_panel_display_mode_1440x3200_48ns {
-					id = "1440x3200_48NS";
-					width = <0x5a0>;
-					height = <0xc80>;
-					refresh_rate = <0x30>;
-					refresh_mode = <0x00>;
-					panel_refresh_rate = <0x30>;
-					panel_refresh_mode = <0x00>;
-					panel_te_st = <0x00>;
-					panel_te_ed = <0x00>;
-					panel_te_sw_skip_count = <0x00>;
-					panel_te_hw_skip_count = <0x00>;
-					dsc_en = <0x01>;
-					dsc_cnt = <0x02>;
-					dsc_slice_num = <0x02>;
-					dsc_slice_w = <0x2d0>;
-					dsc_slice_h = <0x28>;
-					cmd_lp_ref = <0x1e6e>;
-					phandle = <0x3c>;
-				};
-
 				hubble_panel_display_mode_1080x2400_120hs {
 					id = "1080x2400_120HS";
 					width = <0x438>;
@@ -8063,153 +8021,6 @@
 					dsc_slice_h = <0x28>;
 					cmd_lp_ref = <0x284d>;
 					phandle = <0x3f>;
-				};
-
-				hubble_panel_display_mode_1080x2400_60ns {
-					id = "1080x2400_60NS";
-					width = <0x438>;
-					height = <0x960>;
-					refresh_rate = <0x3c>;
-					refresh_mode = <0x00>;
-					panel_refresh_rate = <0x3c>;
-					panel_refresh_mode = <0x00>;
-					panel_te_st = <0x00>;
-					panel_te_ed = <0x00>;
-					panel_te_sw_skip_count = <0x00>;
-					panel_te_hw_skip_count = <0x00>;
-					dsc_en = <0x01>;
-					dsc_cnt = <0x02>;
-					dsc_slice_num = <0x02>;
-					dsc_slice_w = <0x21c>;
-					dsc_slice_h = <0x28>;
-					cmd_lp_ref = <0x284d>;
-					phandle = <0x40>;
-				};
-
-				hubble_panel_display_mode_1080x2400_48ns {
-					id = "1080x2400_48NS";
-					width = <0x438>;
-					height = <0x960>;
-					refresh_rate = <0x30>;
-					refresh_mode = <0x00>;
-					panel_refresh_rate = <0x30>;
-					panel_refresh_mode = <0x00>;
-					panel_te_st = <0x00>;
-					panel_te_ed = <0x00>;
-					panel_te_sw_skip_count = <0x00>;
-					panel_te_hw_skip_count = <0x00>;
-					dsc_en = <0x01>;
-					dsc_cnt = <0x02>;
-					dsc_slice_num = <0x02>;
-					dsc_slice_w = <0x21c>;
-					dsc_slice_h = <0x28>;
-					cmd_lp_ref = <0x284d>;
-					phandle = <0x41>;
-				};
-
-				hubble_panel_display_mode_720x1600_120hs {
-					id = "720x1600_120HS";
-					width = <0x2d0>;
-					height = <0x640>;
-					refresh_rate = <0x78>;
-					refresh_mode = <0x01>;
-					panel_refresh_rate = <0x78>;
-					panel_refresh_mode = <0x01>;
-					panel_te_st = <0x00>;
-					panel_te_ed = <0x00>;
-					panel_te_sw_skip_count = <0x00>;
-					panel_te_hw_skip_count = <0x00>;
-					dsc_en = <0x01>;
-					dsc_cnt = <0x02>;
-					dsc_slice_num = <0x02>;
-					dsc_slice_w = <0x168>;
-					dsc_slice_h = <0x50>;
-					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x42>;
-				};
-
-				hubble_panel_display_mode_720x1600_96hs {
-					id = "720x1600_96HS";
-					width = <0x2d0>;
-					height = <0x640>;
-					refresh_rate = <0x60>;
-					refresh_mode = <0x01>;
-					panel_refresh_rate = <0x60>;
-					panel_refresh_mode = <0x01>;
-					panel_te_st = <0x00>;
-					panel_te_ed = <0x00>;
-					panel_te_sw_skip_count = <0x00>;
-					panel_te_hw_skip_count = <0x00>;
-					dsc_en = <0x01>;
-					dsc_cnt = <0x02>;
-					dsc_slice_num = <0x02>;
-					dsc_slice_w = <0x168>;
-					dsc_slice_h = <0x50>;
-					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x43>;
-				};
-
-				hubble_panel_display_mode_720x1600_60hs {
-					id = "720x1600_60HS";
-					width = <0x2d0>;
-					height = <0x640>;
-					refresh_rate = <0x3c>;
-					refresh_mode = <0x01>;
-					panel_refresh_rate = <0x3c>;
-					panel_refresh_mode = <0x01>;
-					panel_te_st = <0x00>;
-					panel_te_ed = <0x00>;
-					panel_te_sw_skip_count = <0x00>;
-					panel_te_hw_skip_count = <0x00>;
-					dsc_en = <0x01>;
-					dsc_cnt = <0x02>;
-					dsc_slice_num = <0x02>;
-					dsc_slice_w = <0x168>;
-					dsc_slice_h = <0x50>;
-					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x44>;
-				};
-
-				hubble_panel_display_mode_720x1600_60ns {
-					id = "720x1600_60NS";
-					width = <0x2d0>;
-					height = <0x640>;
-					refresh_rate = <0x3c>;
-					refresh_mode = <0x00>;
-					panel_refresh_rate = <0x3c>;
-					panel_refresh_mode = <0x00>;
-					panel_te_st = <0x00>;
-					panel_te_ed = <0x00>;
-					panel_te_sw_skip_count = <0x00>;
-					panel_te_hw_skip_count = <0x00>;
-					dsc_en = <0x01>;
-					dsc_cnt = <0x02>;
-					dsc_slice_num = <0x02>;
-					dsc_slice_w = <0x168>;
-					dsc_slice_h = <0x50>;
-					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x45>;
-				};
-
-				hubble_panel_display_mode_720x1600_48ns {
-					id = "720x1600_48NS";
-					width = <0x2d0>;
-					height = <0x640>;
-					refresh_rate = <0x30>;
-					refresh_mode = <0x00>;
-					panel_refresh_rate = <0x30>;
-					panel_refresh_mode = <0x00>;
-					panel_te_st = <0x00>;
-					panel_te_ed = <0x00>;
-					panel_te_sw_skip_count = <0x00>;
-					panel_te_hw_skip_count = <0x00>;
-					dsc_en = <0x01>;
-					dsc_cnt = <0x02>;
-					dsc_slice_num = <0x02>;
-					dsc_slice_w = <0x168>;
-					dsc_slice_h = <0x50>;
-					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x46>;
 				};
 			};
 		};
@@ -10868,18 +10679,9 @@
 		hsi2c5_bus_vib = "/fragment@49/__overlay__/hsi2c5-bus-vib";
 		motor_rst = "/fragment@49/__overlay__/motor-rst";
 		hubble_panel_display_modes = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes";
-		hubble_panel_display_mode_1440x3200_60ns = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1440x3200_60ns";
-		hubble_panel_display_mode_1440x3200_48ns = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1440x3200_48ns";
 		hubble_panel_display_mode_1080x2400_120hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_120hs";
 		hubble_panel_display_mode_1080x2400_96hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_96hs";
 		hubble_panel_display_mode_1080x2400_60hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_60hs";
-		hubble_panel_display_mode_1080x2400_60ns = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_60ns";
-		hubble_panel_display_mode_1080x2400_48ns = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_48ns";
-		hubble_panel_display_mode_720x1600_120hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_720x1600_120hs";
-		hubble_panel_display_mode_720x1600_96hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_720x1600_96hs";
-		hubble_panel_display_mode_720x1600_60hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_720x1600_60hs";
-		hubble_panel_display_mode_720x1600_60ns = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_720x1600_60ns";
-		hubble_panel_display_mode_720x1600_48ns = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_720x1600_48ns";
 		s5100_ap2cp_pda_active_discard = "/fragment@51/__overlay__/s5100_ap2cp_pda_active_discard";
 		hall_irq = "/fragment@54/__overlay__/hall-irq";
 		certify_hall_irq = "/fragment@54/__overlay__/certify-hall-irq";
