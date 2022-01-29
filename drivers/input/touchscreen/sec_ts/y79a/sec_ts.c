@@ -18,6 +18,11 @@
 #endif
 
 struct sec_ts_data *tsp_info;
+
+#ifndef CONFIG_SEC_DEBUG_TSP_LOG
+#include <linux/proc_fs.h>
+#endif
+
 struct sec_ts_data *ts_dup;
 bool shutdown_is_on_going_tsp;
 
