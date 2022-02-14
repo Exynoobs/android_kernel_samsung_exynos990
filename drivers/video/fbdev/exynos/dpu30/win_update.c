@@ -431,8 +431,8 @@ static bool dpu_need_mres_config(struct decon_device *decon,
 	mode_idx = dpu_find_display_mode(decon,
 			regs->lcd_width, regs->lcd_height, fps);
 	if (mode_idx < 0) {
-		/*DPU_ERR_MRES("%s:could not find display mode(%dx%d@%d)\n",
-				__func__, regs->lcd_width, regs->lcd_height, fps);*/
+		DPU_ERR_MRES("%s:could not find display mode(%dx%d@%d)\n",
+				__func__, regs->lcd_width, regs->lcd_height, fps);
 		goto end;
 	}
 
