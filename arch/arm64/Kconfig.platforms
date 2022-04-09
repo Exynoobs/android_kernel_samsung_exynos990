@@ -347,6 +347,10 @@ config MODEL_Y2S
 	depends on SOC_EXYNOS9830
 
 config MODEL_X1S
+	bool "Samsung Galaxy S20 5G"
+	depends on SOC_EXYNOS9830
+
+config MODEL_X1SLTE
 	bool "Samsung Galaxy S20"
 	depends on SOC_EXYNOS9830
 
