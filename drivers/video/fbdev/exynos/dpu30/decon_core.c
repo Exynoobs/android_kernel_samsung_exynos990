@@ -4149,6 +4149,7 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 #ifdef CONFIG_EXYNOS_SET_ACTIVE
 	struct exynos_display_mode display_mode;
 	struct exynos_display_mode *mode;
+	struct decon_reg_data decon_regs;
 #endif
 	int ret = 0;
 	u32 crtc;
@@ -4534,6 +4535,7 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 
 	case EXYNOS_GET_DISPLAY_MODE_OLD:
 	case EXYNOS_GET_DISPLAY_MODE:
+	    decon_err("DARIO DARIO DARIO CALLED THE IOCTL GET");
 		if (copy_from_user(&display_mode,
 				   (void __user *)arg,
 				   _IOC_SIZE(cmd))) {
@@ -4560,6 +4562,41 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 			ret = -EFAULT;
 			break;
 		}
+		break;
+
+	case EXYNOS_SET_DISPLAY_MODE:
+	    decon_err("DARIO DARIO DARIO CALLED THE IOCTL SET");
+
+		if (copy_from_user(&display_mode,
+				   (void __user *)arg,
+				   _IOC_SIZE(cmd))) {
+			ret = -EFAULT;
+			break;
+		}
+
+		if (display_mode.index >= lcd_info->display_mode_count) {
+			decon_err("not valid display mode index(%d)\n",
+					display_mode.index);
+			ret = -EINVAL;
+			break;
+		}
+
+		mode = &lcd_info->display_mode[display_mode.index].mode;
+		memcpy(&display_mode, mode, sizeof(display_mode));
+
+		decon_info("DARIO DARIO DARIO request display mode[%d] : %dx%d@%d(%dx%dmm)\n",
+				display_mode.index, mode->width, mode->height,
+				mode->fps, mode->mm_width, mode->mm_height);
+
+		if (!IS_DECON_OFF_STATE(decon)) {
+			memset(&decon_regs, 0, sizeof(struct decon_reg_data));
+			decon_regs.mode_update = true;
+			decon_regs.lcd_width = mode->width;
+			decon_regs.lcd_height = mode->height;
+			decon_regs.mode_idx = display_mode.index;
+			dpu_set_mres_config(decon, &decon_regs);
+		}
+
 		break;
 #endif
 
