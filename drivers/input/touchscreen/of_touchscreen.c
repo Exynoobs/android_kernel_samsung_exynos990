@@ -77,7 +77,7 @@ void touchscreen_parse_properties(struct input_dev *input, bool multitouch,
 		return;
 
 	axis = multitouch ? ABS_MT_POSITION_X : ABS_X;
-	data_present = touchscreen_get_prop_u32(dev, "touchscreen-size-x",
+	data_present = (int)touchscreen_get_prop_u32(dev, "touchscreen-size-x",
 						input_abs_get_max(input,
 								  axis) + 1,
 						&maximum) |
@@ -88,7 +88,7 @@ void touchscreen_parse_properties(struct input_dev *input, bool multitouch,
 		touchscreen_set_params(input, axis, maximum - 1, fuzz);
 
 	axis = multitouch ? ABS_MT_POSITION_Y : ABS_Y;
-	data_present = touchscreen_get_prop_u32(dev, "touchscreen-size-y",
+	data_present = (int)touchscreen_get_prop_u32(dev, "touchscreen-size-y",
 						input_abs_get_max(input,
 								  axis) + 1,
 						&maximum) |
@@ -99,7 +99,7 @@ void touchscreen_parse_properties(struct input_dev *input, bool multitouch,
 		touchscreen_set_params(input, axis, maximum - 1, fuzz);
 
 	axis = multitouch ? ABS_MT_PRESSURE : ABS_PRESSURE;
-	data_present = touchscreen_get_prop_u32(dev,
+	data_present = (int)touchscreen_get_prop_u32(dev,
 						"touchscreen-max-pressure",
 						input_abs_get_max(input, axis),
 						&maximum) |
