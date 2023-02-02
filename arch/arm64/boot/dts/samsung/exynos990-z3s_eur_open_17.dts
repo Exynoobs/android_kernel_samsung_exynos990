@@ -7910,8 +7910,8 @@
 		__overlay__ {
 
 			hubble_panel_display_modes {
-				native-mode = <0x3d>;
-				exposed-mode = <0x39 0x3a 0x3b 0x3c 0x3d 0x3e 0x3f 0x40 0x41 0x42>;
+				native-mode = <0x39>;
+				exposed-mode = <0x39 0x3a 0x3b 0x3c 0x3d 0x3e 0x3f 0x40 0x41 0x42 0x43 0x44>;
 				phandle = <0x56>;
 
 				hubble_panel_display_mode_1440x3200_60ns {
@@ -8019,6 +8019,48 @@
 					phandle = <0x3d>;
 				};
 
+				hubble_panel_display_mode_1080x2400_60ns {
+					id = "1080x2400_60NS";
+					width = <0x438>;
+					height = <0x960>;
+					refresh_rate = <0x3c>;
+					refresh_mode = <0x00>;
+					panel_refresh_rate = <0x3c>;
+					panel_refresh_mode = <0x00>;
+					panel_te_st = <0x00>;
+					panel_te_ed = <0x00>;
+					panel_te_sw_skip_count = <0x00>;
+					panel_te_hw_skip_count = <0x00>;
+					dsc_en = <0x01>;
+					dsc_cnt = <0x02>;
+					dsc_slice_num = <0x02>;
+					dsc_slice_w = <0x21c>;
+					dsc_slice_h = <0x28>;
+					cmd_lp_ref = <0x284d>;
+					phandle = <0x3e>;
+				};
+
+				hubble_panel_display_mode_1080x2400_48ns {
+					id = "1080x2400_48NS";
+					width = <0x438>;
+					height = <0x960>;
+					refresh_rate = <0x30>;
+					refresh_mode = <0x00>;
+					panel_refresh_rate = <0x30>;
+					panel_refresh_mode = <0x00>;
+					panel_te_st = <0x00>;
+					panel_te_ed = <0x00>;
+					panel_te_sw_skip_count = <0x00>;
+					panel_te_hw_skip_count = <0x00>;
+					dsc_en = <0x01>;
+					dsc_cnt = <0x02>;
+					dsc_slice_num = <0x02>;
+					dsc_slice_w = <0x21c>;
+					dsc_slice_h = <0x28>;
+					cmd_lp_ref = <0x284d>;
+					phandle = <0x3f>;
+				};
+
 				hubble_panel_display_mode_720x1600_120hs {
 					id = "720x1600_120HS";
 					width = <0x2d0>;
@@ -8037,7 +8079,7 @@
 					dsc_slice_w = <0x168>;
 					dsc_slice_h = <0x50>;
 					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x3e>;
+					phandle = <0x40>;
 				};
 
 				hubble_panel_display_mode_720x1600_96hs {
@@ -8058,7 +8100,7 @@
 					dsc_slice_w = <0x168>;
 					dsc_slice_h = <0x50>;
 					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x3f>;
+					phandle = <0x41>;
 				};
 
 				hubble_panel_display_mode_720x1600_60hs {
@@ -8079,7 +8121,7 @@
 					dsc_slice_w = <0x168>;
 					dsc_slice_h = <0x50>;
 					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x40>;
+					phandle = <0x42>;
 				};
 
 				hubble_panel_display_mode_720x1600_60ns {
@@ -8100,7 +8142,7 @@
 					dsc_slice_w = <0x168>;
 					dsc_slice_h = <0x50>;
 					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x41>;
+					phandle = <0x43>;
 				};
 
 				hubble_panel_display_mode_720x1600_48ns {
@@ -8121,7 +8163,7 @@
 					dsc_slice_w = <0x168>;
 					dsc_slice_h = <0x50>;
 					cmd_lp_ref = <0x2c8c>;
-					phandle = <0x42>;
+					phandle = <0x44>;
 				};
 			};
 		};
@@ -11015,6 +11057,8 @@
 		hubble_panel_display_mode_1080x2400_120hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_120hs";
 		hubble_panel_display_mode_1080x2400_96hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_96hs";
 		hubble_panel_display_mode_1080x2400_60hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_60hs";
+		hubble_panel_display_mode_1080x2400_60ns = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_60ns";
+		hubble_panel_display_mode_1080x2400_48ns = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_1080x2400_48ns";
 		hubble_panel_display_mode_720x1600_120hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_720x1600_120hs";
 		hubble_panel_display_mode_720x1600_96hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_720x1600_96hs";
 		hubble_panel_display_mode_720x1600_60hs = "/fragment@panel_display_mode/__overlay__/hubble_panel_display_modes/hubble_panel_display_mode_720x1600_60hs";
@@ -11993,7 +12037,7 @@
 
 				hubble_panel_display_modes {
 					native-mode = <0x00>;
-					exposed-mode = <0x00 0x04 0x08 0x0c 0x10 0x14 0x18 0x1c 0x20 0x24>;
+					exposed-mode = <0x00 0x04 0x08 0x0c 0x10 0x14 0x18 0x1c 0x20 0x24 0x28 0x2c>;
 				};
 			};
 		};
