@@ -4591,11 +4591,29 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 
 		if (!IS_DECON_OFF_STATE(decon)) {
 			memset(&decon_regs, 0, sizeof(struct decon_reg_data));
+			
+			//struct vrr_config_data  vrr_config;
+
+			//vrr_state = win_data->config[DECON_WIN_UPDATE_IDX].state;
+			
 			decon_regs.mode_update = true;
 			decon_regs.lcd_width = mode->width;
 			decon_regs.lcd_height = mode->height;
 			decon_regs.mode_idx = display_mode_old.index;
+
+			decon_regs.vrr_config.fps = mode->fps;
+			decon_regs.vrr_config.mode = lcd_info->req_mode_idx;
+
+			//decon_regs.fps_update = VRR_UPDATE;
+
+			//vrr_config = decon_regs.vrr_config;
+
+			//vrr_state = win_data->config[DECON_WIN_UPDATE_IDX].state;
+
+
 			dpu_set_mres_config(decon, &decon_regs);
+			decon_update_fps(decon, &decon_regs);
+			//notify_fps_change(mode->fps);
 		}
 		break;
 #endif
