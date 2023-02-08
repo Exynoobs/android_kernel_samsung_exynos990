@@ -87,6 +87,7 @@ struct exynos_dsc {
 	u32 enc_sw;
 };
 
+/* quella mode che cerca lui è questa qui */
 /*
  * TODO : VRR NS/HS MODE need to be unified.
  * - dpu30/decon.h : WIN_VRR_NORMAL_MODE, WIN_VRR_HS_MODE
@@ -115,13 +116,13 @@ struct exynos_display_mode_old {
 };
 
 struct exynos_display_mode {
-	unsigned int index;
-	unsigned int width;
-	unsigned int height;
-	unsigned int mm_width;
-	unsigned int mm_height;
-	unsigned int fps;
-	unsigned int group;
+	u32 index;
+	u32 width;
+	u32 height;
+	u32 mm_width;
+	u32 mm_height;
+	u32 fps;
+	//unsigned int group;
 };
 
 /* used internally by driver */
@@ -246,6 +247,7 @@ struct exynos_panel_info {
 	int display_mode_count;
 	unsigned int cur_mode_idx;
 	unsigned int req_mode_idx;
+	// ci dice in che modalità si trova il display, è un array
 	struct exynos_display_mode_info display_mode[MAX_DISPLAY_MODE];
 	struct panel_color_mode color_mode;
 #if defined(CONFIG_PANEL_DISPLAY_MODE)

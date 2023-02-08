@@ -4148,7 +4148,7 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 	struct dpp_ch_restriction dpp_ch_restriction;
 #ifdef CONFIG_EXYNOS_SET_ACTIVE
 	struct exynos_display_mode display_mode;
-	struct exynos_display_mode_old display_mode_old;
+	//struct exynos_display_mode_old display_mode_old;
 	struct exynos_display_mode *mode;
 	struct decon_reg_data decon_regs;
 #endif
@@ -4534,7 +4534,7 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 		}
 		break;
 
-	case EXYNOS_GET_DISPLAY_MODE_OLD:
+	//case EXYNOS_GET_DISPLAY_MODE_OLD:
 	case EXYNOS_GET_DISPLAY_MODE:
 	    decon_err("DARIO DARIO DARIO CALLED THE IOCTL GET");
 		if (copy_from_user(&display_mode,
@@ -4567,53 +4567,52 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 
 	case EXYNOS_SET_DISPLAY_MODE:
 	    decon_err("DARIO DARIO DARIO CALLED THE IOCTL SET");
-
-		if (copy_from_user(&display_mode_old,
+		if (copy_from_user(&display_mode,
 				   (void __user *)arg,
 				   _IOC_SIZE(cmd))) {
 			ret = -EFAULT;
 			break;
 		}
 
-		if (display_mode_old.index >= lcd_info->display_mode_count) {
+		if (display_mode.index >= lcd_info->display_mode_count) {
 			decon_err("not valid display mode index(%d)\n",
-					display_mode_old.index);
+					display_mode.index);
 			ret = -EINVAL;
 			break;
 		}
 
-		mode = &lcd_info->display_mode[display_mode_old.index].mode;
-		memcpy(&display_mode_old, mode, sizeof(display_mode_old));
+		/*
+		 *  lcd_info is exynos_panel_info, which contains display_mode which is exynos_display_mode_info which is an array of struct,
+		 * and contains mode which is exynos_display_mode. with this operation we are effectively saving the current active mode
+		 * struct into the mode variable which is exynos_display_mode
+		 */
+		mode = &lcd_info->display_mode[display_mode.index].mode;
+
+		/* At this point, we copy the mode variable into the struct so we can access its fields */
+		memcpy(&display_mode, mode, sizeof(display_mode));
 
 		decon_info("DARIO DARIO DARIO request display mode[%d] : %dx%d@%d(%dx%dmm)\n",
-				display_mode_old.index, mode->width, mode->height,
+				display_mode.index, mode->width, mode->height,
 				mode->fps, mode->mm_width, mode->mm_height);
 
 		if (!IS_DECON_OFF_STATE(decon)) {
 			memset(&decon_regs, 0, sizeof(struct decon_reg_data));
-			
-			//struct vrr_config_data  vrr_config;
-
-			//vrr_state = win_data->config[DECON_WIN_UPDATE_IDX].state;
-			
+						
 			decon_regs.mode_update = true;
 			decon_regs.lcd_width = mode->width;
 			decon_regs.lcd_height = mode->height;
-			decon_regs.mode_idx = display_mode_old.index;
+			decon_regs.mode_idx = display_mode.index;
 
 			decon_regs.vrr_config.fps = mode->fps;
-			decon_regs.vrr_config.mode = lcd_info->req_mode_idx;
+
+			/* probably must use a check to determine if it is hs or ns */
+			decon_regs.vrr_config.mode = EXYNOS_PANEL_VRR_HS_MODE;
 
 			//decon_regs.fps_update = VRR_UPDATE;
 
-			//vrr_config = decon_regs.vrr_config;
-
-			//vrr_state = win_data->config[DECON_WIN_UPDATE_IDX].state;
-
-
 			dpu_set_mres_config(decon, &decon_regs);
 			decon_update_fps(decon, &decon_regs);
-			//notify_fps_change(mode->fps);
+
 		}
 		break;
 #endif
