@@ -4611,7 +4611,9 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 			//decon_regs.fps_update = VRR_UPDATE;
 
 			dpu_set_mres_config(decon, &decon_regs);
-			decon_update_fps(decon, &decon_regs);
+			dpu_update_vrr_lcd_info(decon, &decon_regs.vrr_config);
+			dpu_set_vrr_config(decon, &decon_regs.vrr_config);
+			//decon_update_fps(decon, &decon_regs);
 
 		}
 		break;
