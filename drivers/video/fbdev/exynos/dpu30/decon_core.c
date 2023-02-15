@@ -4602,18 +4602,10 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 			decon_regs.lcd_width = mode->width;
 			decon_regs.lcd_height = mode->height;
 			decon_regs.mode_idx = display_mode.index;
-
 			decon_regs.vrr_config.fps = mode->fps;
 
-			/* probably must use a check to determine if it is hs or ns */
-			decon_regs.vrr_config.mode = EXYNOS_PANEL_VRR_HS_MODE;
-
-			//decon_regs.fps_update = VRR_UPDATE;
-
+			dpu_update_mres_lcd_info(decon, &decon_regs);
 			dpu_set_mres_config(decon, &decon_regs);
-			dpu_update_vrr_lcd_info(decon, &decon_regs.vrr_config);
-			dpu_set_vrr_config(decon, &decon_regs.vrr_config);
-			//decon_update_fps(decon, &decon_regs);
 
 		}
 		break;
