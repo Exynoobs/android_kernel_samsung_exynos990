@@ -4534,9 +4534,7 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 		}
 		break;
 
-	//case EXYNOS_GET_DISPLAY_MODE_OLD:
 	case EXYNOS_GET_DISPLAY_MODE:
-	    decon_err("DARIO DARIO DARIO CALLED THE IOCTL GET");
 		if (copy_from_user(&display_mode,
 				   (void __user *)arg,
 				   _IOC_SIZE(cmd))) {
@@ -4566,7 +4564,6 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 		break;
 
 	case EXYNOS_SET_DISPLAY_MODE:
-	    decon_err("DARIO DARIO DARIO CALLED THE IOCTL SET");
 		if (copy_from_user(&display_mode,
 				   (void __user *)arg,
 				   _IOC_SIZE(cmd))) {
@@ -4581,19 +4578,8 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 			break;
 		}
 
-		/*
-		 *  lcd_info is exynos_panel_info, which contains display_mode which is exynos_display_mode_info which is an array of struct,
-		 * and contains mode which is exynos_display_mode. with this operation we are effectively saving the current active mode
-		 * struct into the mode variable which is exynos_display_mode
-		 */
 		mode = &lcd_info->display_mode[display_mode.index].mode;
-
-		/* At this point, we copy the mode variable into the struct so we can access its fields */
 		memcpy(&display_mode, mode, sizeof(display_mode));
-
-		decon_info("DARIO DARIO DARIO request display mode[%d] : %dx%d@%d(%dx%dmm)\n",
-				display_mode.index, mode->width, mode->height,
-				mode->fps, mode->mm_width, mode->mm_height);
 
 		if (!IS_DECON_OFF_STATE(decon)) {
 			memset(&decon_regs, 0, sizeof(struct decon_reg_data));
@@ -4604,9 +4590,21 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 			decon_regs.mode_idx = display_mode.index;
 			decon_regs.vrr_config.fps = mode->fps;
 
+			decon_check_used_dpp(decon, &decon_regs);
+			decon_update_hdr_info(decon, &decon_regs);
 			dpu_update_mres_lcd_info(decon, &decon_regs);
+			/* TODO: check and wait until the required IDMA is free */
+			decon_reg_chmap_validate(decon, &decon_regs);
+			/* apply multi-resolution configuration */
 			dpu_set_mres_config(decon, &decon_regs);
-
+			/* apply window update configuration to DECON, DSIM and panel */
+			dpu_set_win_update_config(decon, &decon_regs);
+			/* request to change DPHY PLL frequency */
+			dpu_set_freq_hop(decon, &decon_regs, true);
+#if IS_ENABLED(CONFIG_EXYNOS_FPS_CHANGE_NOTIFY)
+			if (decon->lcd_info->fps != mode->fps)
+				notify_fps_change(mode->fps);
+#endif
 		}
 		break;
 #endif
